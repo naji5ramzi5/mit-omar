@@ -1,30 +1,43 @@
+const CACHE = 'dmo-cache-v2';
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))),
+    ).then(() => self.clients.claim()),
+  );
 });
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/icons/')) return;
 
+  // Never interfere with API, icons, or framework/build chunks — caching those breaks the app
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/icons/') ||
+    url.pathname.startsWith('/_next/')
+  ) {
+    return;
+  }
+
+  // Network-first: always fetch fresh; cache only as an offline fallback
   event.respondWith(
-    caches.open('dmo-cache-v1').then((cache) =>
-      cache.match(event.request).then((cached) => {
-        const fetched = fetch(event.request)
-          .then((response) => {
-            if (response && response.status === 200 && response.type === 'basic') {
-              cache.put(event.request, response.clone());
-            }
-            return response;
-          })
-          .catch(() => cached || new Response('', { status: 503 }));
-        return cached || fetched;
-      }),
-    ),
+    fetch(event.request)
+      .then((response) => {
+        if (response && response.status === 200 && response.type === 'basic') {
+          const copy = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+        }
+        return response;
+      })
+      .catch(() =>
+        caches.match(event.request).then((cached) => cached || new Response('', { status: 503 })),
+      ),
   );
 });
 
