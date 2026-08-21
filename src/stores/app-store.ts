@@ -15,7 +15,13 @@ export type AppView =
   | 'student'
   | 'video-lesson'
   | 'notifications'
-  | 'admin';
+  | 'exams'
+  | 'quiz'
+  | 'quiz-result'
+  | 'translation'
+  | 'online_booking'
+  | 'flashcards'
+  | 'certificate';
 
 type Theme = 'light' | 'dark' | 'system';
 

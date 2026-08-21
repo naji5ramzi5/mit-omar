@@ -1,21 +1,19 @@
-import { db } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
+import { decodeUserId } from '@/lib/admin-auth';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const token = authHeader.replace('Bearer ', '');
-    const decoded = Buffer.from(token, 'base64').toString('utf-8');
-    const userId = decoded.split(':')[0];
+    const userId = decodeUserId(req);
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    await db.notification.updateMany({
-      where: { userId, isRead: false },
-      data: { isRead: true },
-    });
+    const { error } = await supabase
+      .from('notifications')
+      .update({ isRead: true })
+      .or(`userId.eq.${userId},userId.is.null`)
+      .eq('isRead', false);
 
+    if (error) throw error;
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Mark all read error:', error);

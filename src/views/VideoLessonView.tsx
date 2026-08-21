@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, ArrowLeft, CheckCircle, Play, Clock, List, X, Lock } from 'lucide-react';
+import { ArrowRight, ArrowLeft, CheckCircle, Clock, List, X, Loader2, AlertTriangle } from 'lucide-react';
 import { useAppStore } from '@/stores/app-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { t } from '@/lib/i18n';
@@ -25,10 +25,45 @@ export default function VideoLessonView() {
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const [videoState, setVideoState] = useState<'idle' | 'loading' | 'ready' | 'error' | 'locked'>('idle');
+  const [videoMsg, setVideoMsg] = useState('');
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const isRtl = locale === 'ar';
   const BackArrow = isRtl ? ArrowRight : ArrowLeft;
   const courseId = viewParams.courseId;
   const lessonId = viewParams.lessonId;
+
+  const ui =
+    locale === 'ar'
+      ? { loading: 'جارٍ تحميل الفيديو…', unavailable: 'الفيديو غير متاح حالياً', locked: 'هذا الدرس يتطلب اشتراكاً نشطاً', retry: 'إعادة المحاولة' }
+      : locale === 'de'
+      ? { loading: 'Video wird geladen…', unavailable: 'Video derzeit nicht verfügbar', locked: 'Diese Lektion erfordert eine aktive Anmeldung', retry: 'Erneut versuchen' }
+      : { loading: 'Loading video…', unavailable: 'Video is currently unavailable', locked: 'This lesson requires an active enrollment', retry: 'Try again' };
+
+  const loadVideo = (lesson: Lesson) => {
+    setVideoState('loading');
+    setVideoSrc(null);
+    setVideoMsg('');
+    fetch(`/api/videos/play?lessonId=${lesson.id}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(async (r) => {
+        if (r.status === 403 || r.status === 401) {
+          setVideoState('locked');
+          setVideoMsg(ui.locked);
+          return;
+        }
+        if (!r.ok) throw new Error('unavailable');
+        const data = await r.json();
+        setVideoSrc(data.url || null);
+        setVideoState('ready');
+      })
+      .catch(() => {
+        setVideoState('error');
+        setVideoMsg(ui.unavailable);
+      });
+  };
 
   useEffect(() => {
     if (!courseId) return;
@@ -42,6 +77,7 @@ export default function VideoLessonView() {
           setLessons(data.course.lessons);
           const lesson = data.course.lessons.find((l: Lesson) => l.id === lessonId) || data.course.lessons[0];
           setCurrentLesson(lesson || null);
+          if (lesson) loadVideo(lesson);
         }
       })
       .catch(() => {})
@@ -56,6 +92,7 @@ export default function VideoLessonView() {
   const selectLesson = (lesson: Lesson) => {
     setCurrentLesson(lesson);
     setShowSidebar(false);
+    loadVideo(lesson);
   };
 
   const currentIdx = lessons.findIndex(l => l.id === currentLesson?.id);
@@ -113,14 +150,51 @@ export default function VideoLessonView() {
         {/* Video Area */}
         <div className="flex-1 flex flex-col">
           <div className="flex-1 flex items-center justify-center relative">
-            <div className="w-full aspect-video max-w-5xl relative bg-[#111] flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-brand-orange/20 to-brand-red/20 flex items-center justify-center hover:from-brand-orange/30 hover:to-brand-red/30 transition-colors cursor-pointer">
-                  <Play className="w-8 h-8 text-white ms-1" />
+            <div className="w-full aspect-video max-w-5xl relative bg-[#111] flex items-center justify-center overflow-hidden">
+              {videoState === 'loading' && (
+                <div className="text-center">
+                  <Loader2 className="w-10 h-10 mx-auto mb-4 text-brand-orange animate-spin" />
+                  <p className="text-white/50 text-sm">{ui.loading}</p>
                 </div>
-                <p className="text-white/50 text-sm">{currentLesson ? getField(currentLesson as unknown as Record<string, unknown>, 'title') : ''}</p>
-              </div>
-              {user && (
+              )}
+
+              {videoState === 'error' && (
+                <div className="text-center">
+                  <AlertTriangle className="w-10 h-10 mx-auto mb-4 text-amber-400" />
+                  <p className="text-white/50 text-sm mb-4">{videoMsg || ui.unavailable}</p>
+                  {currentLesson && (
+                    <button
+                      onClick={() => loadVideo(currentLesson)}
+                      className="px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-brand-orange to-brand-red text-white"
+                    >
+                      {ui.retry}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {videoState === 'locked' && (
+                <div className="text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
+                    <svg className="w-7 h-7 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </div>
+                  <p className="text-white/70 text-sm">{videoMsg || ui.locked}</p>
+                </div>
+              )}
+
+              {videoState === 'ready' && videoSrc && (
+                <video
+                  key={currentLesson?.id}
+                  ref={videoRef}
+                  src={videoSrc}
+                  controls
+                  playsInline
+                  controlsList="nodownload noremoteplayback"
+                  className="w-full h-full object-contain bg-black"
+                />
+              )}
+
+              {user && videoState === 'ready' && (
                 <div className="absolute bottom-4 end-4 text-white/10 text-xs pointer-events-none animate-watermark">
                   {t(locale, 'video_watermark')}: {user.name}
                 </div>

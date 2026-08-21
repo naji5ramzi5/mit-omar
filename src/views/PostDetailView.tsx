@@ -87,7 +87,7 @@ export default function PostDetailView() {
             )}
           </div>
 
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground mb-6">
+          <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-foreground mb-6">
             {getField('title')}
           </h1>
 

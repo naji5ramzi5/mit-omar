@@ -1,0 +1,47 @@
+/* Global CSS variables for dark mode */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.646 0.222 35.547);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.589 0.118 165.35);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.7 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.646 0.222 35.547);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.577 0.245 27.318);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.8 0 0);
+  --input: oklch(0.8 0 0);
+  --ring: oklch(0.646 0.222 35.547);
+  --brand-orange: var(--brand-orange);
+  --brand-red: var(--brand-red);
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(1 0 0);
+  --card: oklch(0.2 0 0);
+  --card-foreground: oklch(1 0 0);
+  --popover: oklch(0.2 0 0);
+  --popover-foreground: oklch(1 0 0);
+  --primary: oklch(0.5 0.433 256.803);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.455 0.238 264.748);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.5 0.172 316.257);
+  --muted-foreground: oklch(0.5 0.126 329.077);
+  --accent: oklch(0.5 0.433 256.803);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.577 0.245 27.318);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.455 0.163 274.251);
+  --input: oklch(0.455 0.163 274.251);
+  --ring: oklch(0.5 0.433 256.803);
+}

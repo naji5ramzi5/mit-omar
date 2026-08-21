@@ -1,9 +1,10 @@
-'use client';
+﻿'use client';
 
 import { useEffect, lazy, Suspense } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import FloatingContact from '@/components/FloatingContact';
 import { useAppStore } from '@/stores/app-store';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -20,7 +21,13 @@ const ActivateView = lazy(() => import('@/views/ActivateView'));
 const StudentView = lazy(() => import('@/views/StudentView'));
 const VideoLessonView = lazy(() => import('@/views/VideoLessonView'));
 const NotificationsView = lazy(() => import('@/views/NotificationsView'));
-const AdminView = lazy(() => import('@/views/AdminView'));
+const ExamsView = lazy(() => import('@/views/ExamsView'));
+const QuizView = lazy(() => import('@/views/QuizView'));
+const QuizResultView = lazy(() => import('@/views/QuizResultView'));
+const TranslationView = lazy(() => import('@/views/TranslationView'));
+const OnlineBookingView = lazy(() => import('@/views/OnlineBookingView'));
+const FlashcardsView = lazy(() => import('@/views/FlashcardsView'));
+const CertificateView = lazy(() => import('@/views/CertificateView'));
 
 function ViewLoader() {
   return (
@@ -35,8 +42,8 @@ export default function AppShell() {
   const { token, user, setLoading } = useAuthStore();
 
   useEffect(() => {
-    // Restore auth state from localStorage
-    const savedToken = localStorage.getItem('dmo-token');
+  // Restore auth state from localStorage
+  const savedToken = localStorage.getItem('dmo-token');
     const savedUser = localStorage.getItem('dmo-user');
     if (savedToken && savedUser) {
       try {
@@ -86,6 +93,19 @@ export default function AppShell() {
     return () => clearInterval(interval);
   }, [token]);
 
+  // Track a visit once per day per browser
+  useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `dmo-visit-${today}`;
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, '1');
+    fetch('/api/visits/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ day: today }),
+    }).catch(() => {});
+  }, []);
+
   const renderView = () => {
     switch (view) {
       case 'home': return <HomeView />;
@@ -101,7 +121,13 @@ export default function AppShell() {
       case 'student': return <StudentView />;
       case 'video-lesson': return <VideoLessonView />;
       case 'notifications': return <NotificationsView />;
-      case 'admin': return <AdminView />;
+      case 'exams': return <ExamsView />;
+      case 'quiz': return <QuizView />;
+      case 'quiz-result': return <QuizResultView />;
+      case 'translation': return <TranslationView />;
+      case 'online_booking': return <OnlineBookingView />;
+      case 'flashcards': return <FlashcardsView />;
+      case 'certificate': return <CertificateView />;
       default: return <HomeView />;
     }
   };
@@ -127,6 +153,8 @@ export default function AppShell() {
         </Suspense>
       </main>
       {!isFullPage && <Footer />}
+      {!isFullPage && <FloatingContact />}
     </div>
   );
 }
+

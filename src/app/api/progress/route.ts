@@ -1,36 +1,38 @@
-import { db } from '@/lib/db';
+import { supabaseAdmin } from '@/lib/supabase';
+import { decodeUserId } from '@/lib/admin-auth';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const token = authHeader.replace('Bearer ', '');
-    const decoded = Buffer.from(token, 'base64').toString('utf-8');
-    const userId = decoded.split(':')[0];
+    const userId = decodeUserId(req);
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { lessonId, completed, watchedSeconds } = await req.json();
-    if (!lessonId) {
-      return NextResponse.json({ error: 'lessonId required' }, { status: 400 });
-    }
+    if (!lessonId) return NextResponse.json({ error: 'lessonId required' }, { status: 400 });
 
-    await db.lessonProgress.upsert({
-      where: { userId_lessonId: { userId, lessonId } },
-      create: {
+    // Check existing progress
+    const { data: existing } = await supabaseAdmin
+      .from('lessonProgress')
+      .select('id')
+      .eq('userId', userId)
+      .eq('lessonId', lessonId)
+      .single();
+
+    if (existing) {
+      const updateData: Record<string, unknown> = { lastWatchedAt: new Date().toISOString() };
+      if (completed !== undefined) updateData.completed = completed;
+      if (watchedSeconds !== undefined) updateData.watchedSeconds = watchedSeconds;
+
+      await supabaseAdmin.from('lessonProgress').update(updateData).eq('id', existing.id);
+    } else {
+      await supabaseAdmin.from('lessonProgress').insert({
         userId,
         lessonId,
         completed: !!completed,
         watchedSeconds: watchedSeconds || 0,
-        lastWatchedAt: new Date(),
-      },
-      update: {
-        ...(completed !== undefined ? { completed } : {}),
-        ...(watchedSeconds !== undefined ? { watchedSeconds } : {}),
-        lastWatchedAt: new Date(),
-      },
-    });
+        lastWatchedAt: new Date().toISOString(),
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

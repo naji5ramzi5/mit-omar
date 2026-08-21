@@ -21,6 +21,8 @@ model User {
   enrollments   Enrollment[]
   notifications Notification[]
   lessonProgress LessonProgress[]
+  quizAttempts  QuizAttempt[]
+  onlineLessonBookings OnlineLessonBooking[]
 }
 
 model Course {
@@ -141,11 +143,37 @@ model Notification {
   messageAr   String?
   messageDe   String?
   messageEn   String?
-  type        String   @default("info") // info, course, lesson, announcement
+  type        String   @default("info") // info, course, lesson, announcement, booking
   isRead      Boolean  @default(false)
+  targetType  String   @default("user") // user, all
+  createdBy   String?  // admin user id who sent it
+  sentAt      DateTime?
   createdAt   DateTime @default(now())
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([targetType])
+}
+
+model OnlineLessonBooking {
+  id              String   @id @default(cuid())
+  studentName     String
+  phoneNumber     String
+  level           String   // A1, A2, B1, B2, C1
+  preferredDate   DateTime
+  teacherName     String   @default("الأستاذ عمر")
+  status          String   @default("pending") // pending, confirmed, rejected, completed, cancelled
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([preferredDate])
+  @@index([phoneNumber])
+  @@index([userId])
 }
 
 model SiteSetting {
@@ -154,4 +182,85 @@ model SiteSetting {
   value       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Testimonial {
+  id          String   @id @default(cuid())
+  nameAr      String
+  nameDe      String
+  nameEn      String
+  roleAr      String?
+  roleDe      String?
+  roleEn      String?
+  textAr      String
+  textDe      String
+  textEn      String
+  level       String?
+  rating      Int      @default(5)
+  avatar      String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model Subscriber {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model Quiz {
+  id          String   @id @default(cuid())
+  level       String
+  titleAr     String
+  titleDe     String
+  titleEn     String
+  descriptionAr String?
+  descriptionDe String?
+  descriptionEn String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  questions   Question[]
+  attempts    QuizAttempt[]
+}
+
+model Question {
+  id          String   @id @default(cuid())
+  quizId      String
+  textAr      String
+  textDe      String
+  textEn      String
+  option1Ar   String
+  option1De   String
+  option1En   String
+  option2Ar   String
+  option2De   String
+  option2En   String
+  option3Ar   String
+  option3De   String
+  option3En   String
+  option4Ar   String
+  option4De   String
+  option4En   String
+  correctOption Int
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  userId      String
+  quizId      String
+  score       Int
+  totalQuestions Int
+  answers     String?
+  completedAt DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
 }

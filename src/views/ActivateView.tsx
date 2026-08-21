@@ -51,18 +51,18 @@ export default function ActivateView() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
-        <div className="card-bold p-8 border-2">
+        <div className="card-bold p-8">
           <div className="text-center mb-8">
             <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-brand-orange/10 to-brand-red/10 flex items-center justify-center">
               <KeyRound className="w-7 h-7 text-brand-orange" />
             </div>
-            <h1 className="text-2xl font-black text-foreground">{t(locale, 'activate_title')}</h1>
+            <h1 className="font-display text-2xl font-black text-foreground">{t(locale, 'activate_title')}</h1>
             <p className="text-sm text-muted-foreground mt-2">{t(locale, 'activate_desc')}</p>
           </div>
 
           {result ? (
             <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-green-100 flex items-center justify-center">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-green-100 flex items-center justify-center">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
               <h2 className="text-lg font-bold text-foreground">{t(locale, 'activate_success_title')}</h2>
@@ -75,7 +75,7 @@ export default function ActivateView() {
           ) : (
             <>
               {error && (
-                <div className="mb-4 p-3 flex items-center gap-2 bg-red-50 text-red-600 text-sm rounded-xl border-2 border-red-100 font-medium">
+                <div className="mb-4 p-3 flex items-center gap-2 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 font-medium">
                   <AlertCircle className="w-4 h-4 shrink-0" /> {error}
                 </div>
               )}

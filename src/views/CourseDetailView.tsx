@@ -115,7 +115,7 @@ export default function CourseDetailView() {
         <div className="grid lg:grid-cols-5 gap-8 mb-12">
           <div className="lg:col-span-3">
             <span className="level-badge mb-4 block w-fit">{course.level}</span>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground mb-4">
+            <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-foreground mb-4">
               {getField(courseObj, 'title')}
             </h1>
             <p className="text-muted-foreground leading-relaxed text-lg">
@@ -123,7 +123,7 @@ export default function CourseDetailView() {
             </p>
           </div>
           <div className="lg:col-span-2">
-            <div className="card-bold p-7 space-y-5 border-2">
+            <div className="card-bold p-7 space-y-5">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-brand-orange/10 flex items-center justify-center">
@@ -197,7 +197,7 @@ export default function CourseDetailView() {
             onClick={() => toggleSection('content')}
             className="flex items-center justify-between w-full py-5 border-b-2 border-border group"
           >
-            <h2 className="text-lg font-bold text-foreground">{t(locale, 'course_content')}</h2>
+            <h2 className="font-display text-lg font-bold text-foreground">{t(locale, 'course_content')}</h2>
             {expandedSections.content ? (
               <ChevronUp className="w-5 h-5 text-brand-orange" />
             ) : (
@@ -217,7 +217,7 @@ export default function CourseDetailView() {
                     transition={{ delay: i * 0.05 }}
                     onClick={() => canAccess && handleLessonClick(lesson)}
                     className={`flex items-center gap-4 py-4 px-5 rounded-2xl cursor-pointer transition-all duration-300 ${
-                      canAccess ? 'hover:bg-brand-orange/5 hover:border-brand-orange/20 border-2 border-transparent' : 'opacity-70'
+                      canAccess ? 'hover:bg-brand-orange/5 hover:border-brand-orange/20 border border-transparent' : 'opacity-70'
                     }`}
                   >
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 ${

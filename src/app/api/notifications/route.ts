@@ -1,31 +1,32 @@
-import { db } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
+import { decodeUserId } from '@/lib/admin-auth';
 import { NextResponse } from 'next/server';
 
 export async function GET(req: Request) {
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const token = authHeader.replace('Bearer ', '');
-    const decoded = Buffer.from(token, 'base64').toString('utf-8');
-    const userId = decoded.split(':')[0];
+    const userId = decodeUserId(req);
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
     const countOnly = searchParams.get('countOnly') === 'true';
 
     if (countOnly) {
-      const count = await db.notification.count({
-        where: { userId, isRead: false },
-      });
-      return NextResponse.json({ count });
+      const { count } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .or(`userId.eq.${userId},userId.is.null`)
+        .eq('isRead', false);
+
+      return NextResponse.json({ count: count || 0 });
     }
 
-    const notifications = await db.notification.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+    const { data: notifications, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .or(`userId.eq.${userId},userId.is.null`)
+      .order('createdAt', { ascending: false });
 
+    if (error) throw error;
     return NextResponse.json({ notifications });
   } catch (error) {
     console.error('Notifications error:', error);
@@ -35,24 +36,21 @@ export async function GET(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const token = authHeader.replace('Bearer ', '');
-    const decoded = Buffer.from(token, 'base64').toString('utf-8');
-    const userId = decoded.split(':')[0];
+    const userId = decodeUserId(req);
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { notificationIds } = await req.json();
     if (!Array.isArray(notificationIds) || notificationIds.length === 0) {
       return NextResponse.json({ error: 'notificationIds required' }, { status: 400 });
     }
 
-    await db.notification.updateMany({
-      where: { id: { in: notificationIds }, userId },
-      data: { isRead: true },
-    });
+    const { error } = await supabase
+      .from('notifications')
+      .update({ isRead: true })
+      .or(`userId.eq.${userId},userId.is.null`)
+      .in('id', notificationIds);
 
+    if (error) throw error;
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Mark read error:', error);

@@ -44,12 +44,12 @@ export default function RegisterView() {
     return (
       <div className="min-h-[80vh] flex items-center justify-center px-4 relative overflow-hidden">
         <div className="absolute top-1/4 start-1/4 w-64 h-64 bg-brand-orange/5 rounded-full blur-[120px]" />
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center card-bold p-8 max-w-md w-full border-2 relative z-10">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center card-bold p-8 max-w-md w-full relative z-10">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-green-400" />
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-md">
             <UserPlus className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-xl font-black text-foreground mb-2">{t(locale, 'register_success')}</h2>
+          <h2 className="font-display text-xl font-black text-foreground mb-2">{t(locale, 'register_success')}</h2>
           <button onClick={() => navigate('login')} className="btn-bold-primary mt-4">{t(locale, 'login_button')}</button>
         </motion.div>
       </div>
@@ -61,18 +61,18 @@ export default function RegisterView() {
       <div className="absolute top-1/4 start-1/4 w-64 h-64 bg-brand-orange/5 rounded-full blur-[120px]" />
       <div className="absolute bottom-1/4 end-1/4 w-64 h-64 bg-brand-red/5 rounded-full blur-[120px]" />
       <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md relative z-10">
-        <div className="card-bold p-8 border-2 relative overflow-hidden">
+        <div className="card-bold p-8 relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-brand-orange via-brand-red to-brand-orange" />
           <div className="text-center mb-8">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center shadow-glow">
+            <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center">
               <UserPlus className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-black text-foreground">{t(locale, 'register_title')}</h1>
+            <h1 className="font-display text-2xl font-black text-foreground">{t(locale, 'register_title')}</h1>
             <p className="text-sm text-muted-foreground mt-1">{t(locale, 'register_subtitle')}</p>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm rounded-xl border-2 border-red-100 dark:border-red-900/50 font-medium">{error}</div>
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm rounded-xl border border-red-100 dark:border-red-900/50 font-medium">{error}</div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -97,7 +97,7 @@ export default function RegisterView() {
               <label className="block text-sm font-bold text-foreground mb-1.5">{t(locale, 'register_confirm')}</label>
               <input type="password" required value={form.confirm} onChange={e => setForm(p => ({ ...p, confirm: e.target.value }))} className="input-bold" />
             </div>
-            <button type="submit" disabled={loading} className="btn-bold-primary w-full shadow-glow-lg hover:shadow-brand-orange/50">
+            <button type="submit" disabled={loading} className="btn-bold-primary w-full">
               {loading ? t(locale, 'common_loading') : t(locale, 'register_button')}
             </button>
           </form>

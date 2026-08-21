@@ -1,14 +1,17 @@
-import { db } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const banners = await db.banner.findMany({
-      where: { isActive: true },
-      orderBy: { order: 'asc' },
-    });
+    const { data: banners, error } = await supabase
+      .from('banners')
+      .select('*')
+      .eq('isActive', true)
+      .order('order', { ascending: true });
+
+    if (error) throw error;
     return NextResponse.json({ banners });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ banners: [] });
   }
 }

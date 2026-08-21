@@ -50,18 +50,18 @@ export default function LoginView() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md relative z-10"
       >
-        <div className="card-bold p-8 border-2 relative overflow-hidden">
+        <div className="card-bold p-8 relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-brand-orange via-brand-red to-brand-orange" />
           <div className="text-center mb-8">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center shadow-glow">
+            <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center">
               <LogIn className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-black text-foreground">{t(locale, 'login_title')}</h1>
+            <h1 className="font-display text-2xl font-black text-foreground">{t(locale, 'login_title')}</h1>
             <p className="text-sm text-muted-foreground mt-1">{t(locale, 'login_subtitle')}</p>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm rounded-xl border-2 border-red-100 dark:border-red-900/50 font-medium">
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm rounded-xl border border-red-100 dark:border-red-900/50 font-medium">
               {error}
             </div>
           )}
@@ -80,7 +80,7 @@ export default function LoginView() {
                 </button>
               </div>
             </div>
-            <button type="submit" disabled={loading} className="btn-bold-primary w-full shadow-glow-lg hover:shadow-brand-orange/50">
+            <button type="submit" disabled={loading} className="btn-bold-primary w-full">
               {loading ? t(locale, 'common_loading') : t(locale, 'login_button')}
             </button>
           </form>

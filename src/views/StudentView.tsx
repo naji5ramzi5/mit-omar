@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Clock, CheckCircle, Lock, KeyRound, ArrowRight, ArrowLeft, AlertTriangle, Trophy, Target } from 'lucide-react';
+import { BookOpen, Clock, CheckCircle, Lock, KeyRound, ArrowRight, ArrowLeft, Trophy, Award } from 'lucide-react';
 import { useAppStore } from '@/stores/app-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { t } from '@/lib/i18n';
@@ -27,10 +27,10 @@ export default function StudentView() {
   const { locale, navigate } = useAppStore();
   const { token, isAuthenticated } = useAuthStore();
   const [active, setActive] = useState<Enrollment[]>([]);
-  const [expired, setExpired] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const isRtl = locale === 'ar';
   const BackArrow = isRtl ? ArrowRight : ArrowLeft;
+  const certLabel = locale === 'ar' ? 'احصل على شهادتك' : locale === 'de' ? 'Dein Zertifikat ansehen' : 'Get your certificate';
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -44,7 +44,6 @@ export default function StudentView() {
       .then(data => {
         const enrollments = data.enrollments || [];
         setActive(enrollments.filter((e: Enrollment) => e.isActive));
-        setExpired(enrollments.filter((e: Enrollment) => !e.isActive));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -80,7 +79,7 @@ export default function StudentView() {
     <div className="pt-8 pb-20">
       <div className="container-bold">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-          <h1 className="text-2xl sm:text-3xl font-black text-foreground">{t(locale, 'student_title')}</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-black text-foreground">{t(locale, 'student_title')}</h1>
           <button onClick={() => navigate('activate')} className="btn-bold-primary text-xs flex items-center gap-2">
             <KeyRound className="w-3.5 h-3.5" />
             {t(locale, 'student_activate_new')}
@@ -89,13 +88,13 @@ export default function StudentView() {
 
         {/* Active Enrollments */}
         <section className="mb-12">
-          <h2 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2">
+          <h2 className="font-display text-lg font-bold text-foreground mb-5 flex items-center gap-2">
             <Trophy className="w-5 h-5 text-brand-orange" />
             {t(locale, 'student_active')}
           </h2>
           {active.length === 0 ? (
-            <div className="card-bold p-8 sm:p-12 text-center border-2">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-brand-orange/10 flex items-center justify-center">
+            <div className="card-bold p-8 sm:p-12 text-center">
+              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-brand-orange/10 flex items-center justify-center">
                 <BookOpen className="w-8 h-8 text-brand-orange" />
               </div>
               <p className="text-muted-foreground text-lg">{t(locale, 'student_no_active')}</p>
@@ -106,7 +105,6 @@ export default function StudentView() {
                 const progress = enrollment._count.lessons > 0
                   ? Math.round((enrollment.completedLessons / enrollment._count.lessons) * 100)
                   : 0;
-                const isExpired = enrollment.expiresAt && new Date(enrollment.expiresAt) < new Date();
                 return (
                   <motion.div
                     key={enrollment.id}
@@ -119,11 +117,6 @@ export default function StudentView() {
                       <img src={enrollment.course.imageUrl || '/images/berlin/brandenburg-gate.png'} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                       <div className="absolute top-3 start-3"><span className="level-badge">{enrollment.course.level}</span></div>
-                      {isExpired && (
-                        <div className="absolute top-3 end-3 flex items-center gap-1 px-2.5 py-1 bg-amber-500 text-white text-xs rounded-xl font-bold">
-                          <AlertTriangle className="w-3 h-3" /> {t(locale, 'activate_expired')}
-                        </div>
-                      )}
                     </div>
                     <div className="p-6">
                       <h3 className="font-bold text-foreground mb-3 line-clamp-1 text-lg">{getField(enrollment.course as unknown as Record<string, unknown>, 'title')}</h3>
@@ -136,6 +129,15 @@ export default function StudentView() {
                           <div className="h-full bg-gradient-to-r from-brand-orange to-brand-red rounded-full transition-all duration-700" style={{ width: `${progress}%` }} />
                         </div>
                       </div>
+                      {progress >= 100 && (
+                        <button
+                          onClick={() => navigate('certificate', { courseId: enrollment.course.id })}
+                          className="btn-bold-secondary text-xs w-full mb-2.5 flex items-center justify-center gap-2"
+                        >
+                          <Award className="w-3.5 h-3.5 text-brand-orange" />
+                          {certLabel}
+                        </button>
+                      )}
                       <button onClick={() => handleContinue(enrollment)} className="btn-bold-primary text-xs w-full">
                         {progress > 0 ? t(locale, 'student_continue_watching') : t(locale, 'course_start_watching')}
                       </button>
@@ -146,30 +148,6 @@ export default function StudentView() {
             </div>
           )}
         </section>
-
-        {/* Expired Enrollments */}
-        {expired.length > 0 && (
-          <section>
-            <h2 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2">
-              <Target className="w-5 h-5 text-muted-foreground" />
-              {t(locale, 'student_expired')}
-            </h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {expired.map(enrollment => (
-                <div key={enrollment.id} className="card-bold overflow-hidden opacity-60">
-                  <div className="relative h-40 overflow-hidden grayscale">
-                    <img src={enrollment.course.imageUrl || '/images/berlin/brandenburg-gate.png'} alt="" className="w-full h-full object-cover" />
-                    <div className="absolute top-3 start-3"><span className="level-badge">{enrollment.course.level}</span></div>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="font-bold text-foreground mb-1 line-clamp-1">{getField(enrollment.course as unknown as Record<string, unknown>, 'title')}</h3>
-                    <p className="text-xs text-muted-foreground font-medium">{t(locale, 'activate_expired')}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
       </div>
     </div>
   );

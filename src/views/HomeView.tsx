@@ -2,313 +2,307 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, BookOpen, Users, Award, Clock, GraduationCap, Headphones, Globe, Sparkles, Play, ArrowUpRight, MessageCircle, PenTool, Mic, BookMarked, Lightbulb, Languages, Target, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Users, Award, Clock, GraduationCap, Play, ArrowUpRight, MessageCircle, Target, Star, BookMarked, PenTool, Mic, Trophy, X } from 'lucide-react';
 import { useAppStore } from '@/stores/app-store';
 import { t } from '@/lib/i18n';
-import { useCountUp, useInView } from '@/hooks/use-scroll';
+import { useCountUp } from '@/hooks/use-scroll';
 import Image from 'next/image';
+import SectionTitle from '@/components/SectionTitle';
 
-interface Banner {
-  id: string;
-  titleAr: string; titleDe: string; titleEn: string;
-  descriptionAr?: string; descriptionDe?: string; descriptionEn?: string;
-  labelAr?: string; labelDe?: string; labelEn?: string;
-  imageUrl?: string;
-  order: number;
-}
-
-interface SiteStat {
-  students: number;
-  years: number;
-  courses: number;
-  lessons: number;
-}
+interface Banner { id: string; titleAr: string; titleDe: string; titleEn: string; descriptionAr?: string; descriptionDe?: string; descriptionEn?: string; labelAr?: string; labelDe?: string; labelEn?: string; imageUrl?: string; order: number; }
+interface SiteStat { students: number; years: number; courses: number; lessons: number; }
+interface Post { id: string; titleAr: string; titleDe: string; titleEn: string; excerptAr?: string; excerptDe?: string; excerptEn?: string; imageUrl?: string; category?: string; createdAt: string; }
+interface Testimonial { id: string; nameAr: string; nameDe: string; nameEn: string; roleAr?: string; roleDe?: string; roleEn?: string; textAr: string; textDe: string; textEn: string; level?: string; rating: number; avatar?: string; }
+interface Reel { id: string; titleAr: string; titleDe: string; titleEn: string; videoUrl: string; videoId?: string; thumbnail?: string; duration: number; }
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1'];
-const berlinImages = [
-  '/images/berlin/brandenburg-gate.png',
-  '/images/berlin/reichstag.png',
-  '/images/berlin/skyline.png',
-  '/images/berlin/cathedral.png',
+const berlinImages = ['/images/berlin/brandenburg-gate.png', '/images/berlin/reichstag.png', '/images/berlin/skyline.png', '/images/berlin/cathedral.png'];
+
+const whyOmar = [
+  { icon: BookMarked, titleKey: 'home_why_1_title', descKey: 'home_why_1_desc', gradient: 'from-emerald-500 to-teal-600' },
+  { icon: MessageCircle, titleKey: 'home_why_2_title', descKey: 'home_why_2_desc', gradient: 'from-blue-500 to-indigo-600' },
+  { icon: Target, titleKey: 'home_why_3_title', descKey: 'home_why_3_desc', gradient: 'from-brand-orange to-amber-500' },
+  { icon: Mic, titleKey: 'home_why_4_title', descKey: 'home_why_4_desc', gradient: 'from-brand-red to-rose-600' },
 ];
 
 const features = [
-  { icon: GraduationCap, key: 'about_qual_1' },
-  { icon: Headphones, key: 'about_qual_3' },
-  { icon: Globe, key: 'about_qual_2' },
-  { icon: Sparkles, key: 'about_qual_4' },
-];
-
-const germanLevels = [
-  { level: 'A1', titleAr: 'المستوى المبتدئ', descAr: 'أساسيات اللغة والتعريف بالنفس والحياة اليومية', color: 'from-green-400 to-emerald-500', icon: BookMarked },
-  { level: 'A2', titleAr: 'المستوى elementary', descAr: 'فهم المحادثات البسيطة والتعامل في المواقف اليومية', color: 'from-blue-400 to-cyan-500', icon: MessageCircle },
-  { level: 'B1', titleAr: 'المستوى المتوسط', descAr: 'التعبير عن الآراء وفهم النصوص المعقدة نسبياً', color: 'from-brand-orange to-amber-500', icon: PenTool },
-  { level: 'B2', titleAr: 'المستوى فوق المتوسط', descAr: 'الطلاقة في المحادثة وفهم الأفلام والمقالات', color: 'from-brand-red to-rose-500', icon: Mic },
-  { level: 'C1', titleAr: 'المستوى المتقدم', descAr: 'إتقان اللغة والتحدث بطلاقة شبه محلية', color: 'from-purple-500 to-violet-500', icon: Languages },
-];
-
-const learningTips = [
-  { icon: MessageCircle, title: 'تحدّث يومياً', desc: 'مارس المحادثة بالألماني حتى لو 10 دقائق يومياً' },
-  { icon: BookOpen, title: 'اقرأ النصوص', desc: 'ابدأ بنصوص بسيطة وزد الصعوبة تدريجياً' },
-  { icon: Mic, title: 'استمع وكرر', desc: 'استمع للأغاني والأفلام الألمانية وكرر الجمل' },
-  { icon: PenTool, title: 'اكتب يومياتك', desc: 'اكتب جمل بسيطة عن يومك بالألماني' },
+  { icon: BookOpen, titleKey: 'home_features_1_title', descKey: 'home_features_1_desc', color: 'text-brand-orange', bg: 'bg-brand-orange/10' },
+  { icon: MessageCircle, titleKey: 'home_features_2_title', descKey: 'home_features_2_desc', color: 'text-sky-600', bg: 'bg-sky-100 dark:bg-sky-500/10' },
+  { icon: PenTool, titleKey: 'home_features_3_title', descKey: 'home_features_3_desc', color: 'text-emerald-600', bg: 'bg-emerald-100 dark:bg-emerald-500/10' },
+  { icon: Trophy, titleKey: 'home_features_4_title', descKey: 'home_features_4_desc', color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-500/10' },
 ];
 
 export default function HomeView() {
   const { locale, navigate } = useAppStore();
   const [banners, setBanners] = useState<Banner[]>([]);
   const [stats, setStats] = useState<SiteStat>({ students: 500, years: 8, courses: 15, lessons: 200 });
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [reels, setReels] = useState<Reel[]>([]);
+  const [activeReel, setActiveReel] = useState<Reel | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const studentsCount = useCountUp(stats.students, 2000, true);
-  const yearsCount = useCountUp(stats.years, 2000, true);
-  const coursesCount = useCountUp(stats.courses, 2000, true);
-  const lessonsCount = useCountUp(stats.lessons, 2000, true);
+  const studentsCount = useCountUp(stats.students, 1800, true);
+  const yearsCount = useCountUp(stats.years, 1800, true);
+  const coursesCount = useCountUp(stats.courses, 1800, true);
+  const lessonsCount = useCountUp(stats.lessons, 1800, true);
 
   const setCountersRef = (el: HTMLElement | null) => {
-    studentsCount.ref(el);
-    yearsCount.ref(el);
-    coursesCount.ref(el);
-    lessonsCount.ref(el);
+    studentsCount.ref(el); yearsCount.ref(el); coursesCount.ref(el); lessonsCount.ref(el);
   };
 
-  const { ref: teacherRef, isInView: teacherInView } = useInView(0.1);
-  const { ref: levelsRef, isInView: levelsInView } = useInView(0.1);
-  const { ref: tipsRef, isInView: tipsInView } = useInView(0.1);
-  const { ref: germanRef, isInView: germanInView } = useInView(0.1);
-
   useEffect(() => {
-    fetch('/api/courses?includeLessons=false&limit=100')
-      .then(r => r.json())
-      .then(data => { if (data.courses) setStats(s => ({ ...s, courses: data.courses.length })); }).catch(() => {});
-    fetch('/api/stats')
-      .then(r => r.json())
-      .then(data => {
-        if (data.students) setStats(s => ({ ...s, students: data.students }));
-        if (data.years) setStats(s => ({ ...s, years: data.years }));
-        if (data.lessons) setStats(s => ({ ...s, lessons: data.lessons }));
-      }).catch(() => {});
-    fetch('/api/banners')
-      .then(r => r.json())
-      .then(data => { if (data.banners?.length) setBanners(data.banners); }).catch(() => {});
+    fetch('/api/courses?includeLessons=false&limit=100').then(r => r.json()).then(data => { if (data.courses) setStats(s => ({ ...s, courses: data.courses.length })); }).catch(() => {});
+    fetch('/api/stats').then(r => r.json()).then(data => { if (data.students) setStats(s => ({ ...s, students: data.students })); if (data.years) setStats(s => ({ ...s, years: data.years })); if (data.lessons) setStats(s => ({ ...s, lessons: data.lessons })); }).catch(() => {});
+    fetch('/api/banners').then(r => r.json()).then(data => { if (data.banners?.length) setBanners(data.banners); }).catch(() => {});
+    fetch('/api/posts?limit=6').then(r => r.json()).then(data => { if (data.posts) setPosts(data.posts.slice(0, 6)); }).catch(() => {});
+    fetch('/api/testimonials').then(r => r.json()).then(data => { if (data.testimonials) setTestimonials(data.testimonials); }).catch(() => {});
+    fetch('/api/reels').then(r => r.json()).then(data => { if (data.reels) setReels(data.reels); }).catch(() => {});
+    fetch('/api/settings').then(r => r.json()).then(data => {
+      const s = data.settings as Record<string, string> | undefined;
+      if (!s) return;
+      setStats(prev => ({
+        students: parseInt(s.stats_students || '') || prev.students,
+        years: parseInt(s.stats_years || '') || prev.years,
+        courses: parseInt(s.stats_courses || '') || prev.courses,
+        lessons: parseInt(s.stats_lessons || '') || prev.lessons,
+      }));
+    }).catch(() => {});
   }, []);
 
   const slideCount = banners.length > 0 ? banners.length : berlinImages.length;
-
-  const getBannerField = useCallback((banner: Banner, field: string) => {
-    const localeKey = locale.charAt(0).toUpperCase() + locale.slice(1);
-    return (banner as Record<string, unknown>)[`${field}${localeKey}`] as string || '';
-  }, [locale]);
-
-  const nextSlide = useCallback(() => {
-    if (slideCount === 0) return;
-    setCurrentSlide(p => (p + 1) % slideCount);
-  }, [slideCount]);
-
-  const prevSlide = useCallback(() => {
-    if (slideCount === 0) return;
-    setCurrentSlide(p => (p - 1 + slideCount) % slideCount);
-  }, [slideCount]);
+  const getBannerField = useCallback((banner: Banner, field: string) => { const localeKey = locale.charAt(0).toUpperCase() + locale.slice(1); return (banner as unknown as Record<string, unknown>)[`${field}${localeKey}`] as string || ''; }, [locale]);
+  const nextSlide = useCallback(() => { if (slideCount === 0) return; setCurrentSlide(p => (p + 1) % slideCount); }, [slideCount]);
+  const prevSlide = useCallback(() => { if (slideCount === 0) return; setCurrentSlide(p => (p - 1 + slideCount) % slideCount); }, [slideCount]);
 
   useEffect(() => {
     if (!isAutoPlaying || slideCount <= 1) return;
     timerRef.current = setTimeout(() => { setCurrentSlide(p => (p + 1) % slideCount); }, 6000);
-    return () => clearTimeout(timerRef.current);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [isAutoPlaying, currentSlide, slideCount]);
 
   const banner = banners.length > 0 ? banners[currentSlide] : null;
   const currentImage = banner?.imageUrl || berlinImages[currentSlide % berlinImages.length];
-  const slideLabel = banner ? getBannerField(banner, 'label') : t(locale, `carousel_${currentSlide + 1}_label` as keyof typeof import('@/lib/i18n').translations.en);
-  const slideTitle = banner ? getBannerField(banner, 'title') : t(locale, `carousel_${currentSlide + 1}_title` as keyof typeof import('@/lib/i18n').translations.en);
-  const slideDesc = banner ? getBannerField(banner, 'description') : t(locale, `carousel_${currentSlide + 1}_desc` as keyof typeof import('@/lib/i18n').translations.en);
-
+  const slideLabel = banner ? getBannerField(banner, 'label') : t(locale, `carousel_${currentSlide + 1}_label` as any);
+  const slideTitle = banner ? getBannerField(banner, 'title') : t(locale, `carousel_${currentSlide + 1}_title` as any);
+  const slideDesc = banner ? getBannerField(banner, 'description') : t(locale, `carousel_${currentSlide + 1}_desc` as any);
   const isRtl = locale === 'ar';
   const BackArrow = isRtl ? ArrowRight : ArrowLeft;
   const FwdArrow = isRtl ? ArrowLeft : ArrowRight;
+  const getPostField = (obj: Record<string, unknown>, field: string) => { const localeKey = locale.charAt(0).toUpperCase() + locale.slice(1); return (obj[`${field}${localeKey}`] as string) || ''; };
+  const getTestimonialField = (obj: Record<string, unknown>, field: string) => { const localeKey = locale.charAt(0).toUpperCase() + locale.slice(1); return (obj[`${field}${localeKey}`] as string) || ''; };
+
+  const getReelField = (reel: Reel, field: string) => { const localeKey = locale.charAt(0).toUpperCase() + locale.slice(1); return ((reel as unknown as Record<string, unknown>)[`${field}${localeKey}`] as string) || ''; };
+
+  const getReelEmbedUrl = (reel: Reel): string | null => {
+    if (reel.videoId) return `https://www.youtube.com/embed/${reel.videoId}`;
+    const url = reel.videoUrl || '';
+    const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]+)/);
+    if (match) return `https://www.youtube.com/embed/${match[1]}`;
+    return null;
+  };
+
+  const formatDuration = (seconds: number) => {
+    if (!seconds || seconds <= 0) return '';
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const fade = (delay = 0) => ({
+    initial: { opacity: 0, y: 20 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: true, margin: '-60px' } as const,
+    transition: { duration: 0.55, delay, ease: [0.4, 0, 0.2, 1] as const },
+  });
 
   return (
     <div>
-      {/* ═══════════ HERO CAROUSEL (Full Width — No Teacher) ═══════════ */}
-      <section className="relative h-[80vh] sm:h-[85vh] min-h-[500px] sm:min-h-[600px] max-h-[900px] overflow-hidden">
+      {/* ============ HERO ============ */}
+      <section className="relative overflow-hidden min-h-[420px] md:h-[52vh] md:min-h-[440px] lg:h-[54vh] lg:min-h-[460px] lg:max-h-[560px]">
         <AnimatePresence mode="wait">
-          <motion.div
-            key={currentSlide}
-            initial={{ opacity: 0, scale: 1.06 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-            className="absolute inset-0"
-          >
-            <div className="absolute inset-0">
-              <Image src={currentImage} alt="" fill className="object-cover scale-105" priority />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-black/30" />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
-              {/* Extra overlay for premium depth */}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
-            </div>
+          <motion.div key={currentSlide} initial={{ opacity: 0, scale: 1.06 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 1.2, ease: 'easeOut' }} className="absolute inset-0">
+            <Image src={currentImage} alt="" fill sizes="100vw" priority className="object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/30 to-transparent" />
           </motion.div>
         </AnimatePresence>
 
-        {/* Floating decorative elements */}
-        <div className="absolute top-1/4 end-8 w-3 h-3 bg-brand-orange rounded-full animate-float opacity-50" />
-        <div className="absolute top-1/3 start-12 w-2 h-2 bg-brand-red rounded-full animate-float opacity-35" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-1/3 end-1/4 w-1.5 h-1.5 bg-brand-orange-light rounded-full animate-float opacity-40" style={{ animationDelay: '2s' }} />
-
-        <div className="relative z-10 h-full flex items-center pb-16 sm:pb-20">
+        {/* Content */}
+        <div className="relative z-10 h-full flex items-center pb-10 pt-24">
           <div className="container-bold w-full">
-            <div className="max-w-3xl">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentSlide}
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.8, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                >
-                  <span className="inline-flex items-center gap-2 text-brand-orange text-[11px] font-bold uppercase tracking-[0.25em] mb-6">
-                    <span className="w-12 h-0.5 bg-gradient-to-r from-brand-orange to-brand-red rounded-full" />
-                    {slideLabel}
-                  </span>
-                  <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white leading-[1.05] mb-6 tracking-tight drop-shadow-2xl">
-                    {slideTitle}
-                  </h1>
-                  <p className="text-lg sm:text-xl text-white/60 leading-[1.8] mb-10 max-w-xl drop-shadow-lg">
-                    {slideDesc}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-4">
-                    <button onClick={() => navigate('courses')} className="group inline-flex items-center gap-3 px-6 sm:px-10 py-3.5 sm:py-4 text-sm font-bold tracking-wide uppercase bg-gradient-to-r from-brand-orange to-brand-red text-white rounded-2xl hover:from-brand-orange-dark hover:to-brand-red-dark active:scale-[0.97] transition-all duration-300 shadow-glow-lg hover:shadow-brand-orange/50">
-                      {t(locale, 'hero_cta_primary')}
-                      <ArrowUpRight className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                    </button>
-                    <button
-                      onClick={() => navigate('about')}
-                      className="group inline-flex items-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 text-sm font-semibold tracking-wide text-white/80 rounded-2xl border-2 border-white/20 hover:bg-white/10 hover:border-white/30 active:scale-[0.97] transition-all duration-300 backdrop-blur-sm"
-                    >
-                      {t(locale, 'hero_cta_secondary')}
-                    </button>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
+            <div className="flex items-center justify-between gap-10">
+              <div className="max-w-2xl w-full">
+                <AnimatePresence mode="wait">
+                  <motion.div key={currentSlide} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}>
+                    <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-6 border border-white/20 backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                      <span className="w-1.5 h-1.5 bg-brand-orange rounded-full" />
+                      <span className="text-white text-[11px] font-semibold tracking-[0.12em] uppercase" style={{ opacity: 0.85 }}>{slideLabel}</span>
+                    </div>
 
-              {/* Carousel Controls */}
-              <div className="flex items-center gap-4 mt-12">
-                <button onClick={prevSlide} className="w-12 h-12 rounded-2xl border-2 border-white/20 flex items-center justify-center text-white/50 hover:text-white hover:border-brand-orange hover:bg-brand-orange/15 transition-all duration-300 backdrop-blur-sm">
-                  <BackArrow className="w-5 h-5" />
-                </button>
-                <div className="flex items-center gap-2">
-                  {Array.from({ length: slideCount }).map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentSlide(i)}
-                      onMouseEnter={() => setIsAutoPlaying(false)}
-                      onMouseLeave={() => setIsAutoPlaying(true)}
-                      className={`h-2 rounded-full transition-all duration-500 ${
-                        i === currentSlide ? 'w-14 bg-gradient-to-r from-brand-orange to-brand-red shadow-glow' : 'w-3 bg-white/30 hover:bg-white/50'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <button onClick={nextSlide} className="w-12 h-12 rounded-2xl border-2 border-white/20 flex items-center justify-center text-white/50 hover:text-white hover:border-brand-orange hover:bg-brand-orange/15 transition-all duration-300 backdrop-blur-sm">
-                  <FwdArrow className="w-5 h-5" />
-                </button>
+                    <h1 className="font-display text-white font-black leading-[1.12] tracking-tight mb-3 text-balance" style={{ fontSize: 'clamp(1.6rem, 3.6vw, 2.7rem)' }}>
+                      {slideTitle}
+                    </h1>
+
+                    <p className="leading-relaxed mb-5 max-w-xl text-sm sm:text-base" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                      {slideDesc}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button onClick={() => navigate('courses')} className="group inline-flex items-center gap-2 px-6 py-3 text-sm font-bold tracking-wide text-white rounded-xl shadow-lg shadow-brand-orange/25 hover:shadow-brand-orange/40 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200" style={{ background: 'linear-gradient(135deg, #E85D26, #DC3545)' }}>
+                        {t(locale, 'hero_cta_primary')}
+                        <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                      </button>
+                      <button onClick={() => navigate('online_booking')} className="group inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold tracking-wide text-white rounded-xl border border-white/25 backdrop-blur-md hover:bg-white/15 transition-all duration-200" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                        <CalendarIcon className="w-4 h-4" />
+                        {t(locale, 'nav_online_booking')}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-6 mt-6 pt-5 border-t border-white/10">
+                      {[
+                        { v: `${stats.students}+`, l: t(locale, 'stats_students') },
+                        { v: `${stats.years}+`, l: t(locale, 'stats_years') },
+                        { v: `${stats.courses}+`, l: t(locale, 'stats_courses') },
+                      ].map((s, i) => (
+                        <div key={i} className="text-center">
+                          <p className="font-display text-xl font-extrabold text-white number-display">{s.v}</p>
+                          <p className="text-[11px] font-medium tracking-wide mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>{s.l}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
               </div>
+
             </div>
+
+            {/* Carousel controls */}
+            <div className="flex items-center gap-4 mt-7">
+              <button onClick={prevSlide} aria-label="السابق" className="w-10 h-10 rounded-xl border border-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/15 transition-all duration-200" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                <BackArrow className="w-4 h-4" />
+              </button>
+              <div className="flex items-center gap-2">
+                {Array.from({ length: slideCount }).map((_, i) => (
+                  <button key={i} onClick={() => setCurrentSlide(i)} onMouseEnter={() => setIsAutoPlaying(false)} onMouseLeave={() => setIsAutoPlaying(true)}
+                    aria-label={`Slide ${i + 1}`}
+                    className="h-1.5 rounded-full transition-all duration-300"
+                    style={{ width: i === currentSlide ? '32px' : '10px', background: i === currentSlide ? 'linear-gradient(90deg, #E85D26, #DC3545)' : 'rgba(255,255,255,0.3)' }} />
+                ))}
+              </div>
+              <button onClick={nextSlide} aria-label="التالي" className="w-10 h-10 rounded-xl border border-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/15 transition-all duration-200" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                <FwdArrow className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Scroll hint */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 hidden md:block">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.6 }} className="flex flex-col items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-[0.2em]" style={{ color: 'rgba(255,255,255,0.35)' }}>{t(locale, 'nav_courses')}</span>
+            <div className="w-5 h-9 rounded-full border border-white/20 flex items-start justify-center p-1.5">
+              <motion.div animate={{ y: [0, 14, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }} className="w-1 h-2.5 rounded-full" style={{ background: '#E85D26' }} />
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ============ FEATURES STRIP ============ */}
+      <section className="py-12 bg-card border-y border-border/60 dark:border-border">
+        <div className="container-bold">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {features.map((f, i) => (
+              <motion.button
+                key={i}
+                {...fade(i * 0.06)}
+                onClick={() => navigate('courses')}
+                className="group flex items-center gap-3.5 p-4 rounded-xl border border-border/70 bg-card hover:border-brand-orange/35 hover:-translate-y-0.5 transition-all duration-200 text-start"
+              >
+                <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center ${f.bg} transition-transform duration-200 group-hover:scale-105`}>
+                  <f.icon className={`w-5 h-5 ${f.color}`} />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-display font-bold text-sm text-foreground leading-tight">{t(locale, f.titleKey as any)}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{t(locale, f.descKey as any)}</p>
+                </div>
+              </motion.button>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ═══════════ TEACHER SECTION ═══════════ */}
-      <section className="py-14 sm:py-20 lg:py-28 bg-brand-warm dark:bg-accent relative overflow-hidden">
-        <div className="absolute top-0 start-0 w-96 h-96 bg-brand-orange/5 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 end-0 w-72 h-72 bg-brand-red/5 rounded-full blur-[100px] translate-x-1/3 translate-y-1/3" />
-
-        <div className="container-bold" ref={teacherRef}>
-          <div className="grid lg:grid-cols-2 gap-10 sm:gap-14 lg:gap-20 items-center">
-            {/* Teacher Image */}
-            <motion.div
-              initial={{ opacity: 0, x: isRtl ? 60 : -60 }}
-              animate={teacherInView ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-              className="relative"
-            >
-              <div className="relative">
-                {/* Decorative frame */}
-                <div className="absolute -top-6 -start-6 w-full h-full border-2 border-brand-orange/20 rounded-3xl" />
-                <div className="absolute -bottom-6 -end-6 w-full h-full border-2 border-brand-red/15 rounded-3xl" />
-
-                {/* Image */}
-                <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-black/15">
-                  <Image
-                    src="/images/teacher/omar-hero.png"
-                    alt="Omar — German Language Teacher"
-                    width={600}
-                    height={800}
-                    className="w-full h-auto object-cover"
-                    priority
-                  />
-                  <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+      {/* ============ WHY OMAR ============ */}
+      <section className="py-16 lg:py-20 bg-brand-warm dark:bg-accent relative overflow-hidden">
+        <div className="container-bold">
+          <motion.div {...fade(0)}>
+            <SectionTitle badge={t(locale, 'home_why_omar')} title={t(locale, 'home_why_omar')} subtitle={t(locale, 'home_why_subtitle')} />
+          </motion.div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {whyOmar.map((item, i) => (
+              <motion.div key={i} {...fade(i * 0.07)}>
+                <div className="group h-full p-6 rounded-2xl border border-border/70 bg-card hover:border-brand-orange/30 hover:-translate-y-1 transition-all duration-300">
+                  <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-4 shadow-md shadow-black/5 group-hover:scale-105 transition-transform duration-300`}>
+                    <item.icon className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="font-display font-bold text-foreground mb-1.5 text-[15px]">{t(locale, item.titleKey as any)}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{t(locale, item.descKey as any)}</p>
                 </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-                {/* Experience Badge */}
-                <div className="absolute -bottom-5 start-8 bg-white dark:bg-card rounded-2xl shadow-card-hover p-5 border-2 border-border/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center shadow-glow">
-                      <Award className="w-7 h-7 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-black text-gradient">8+ سنوات</p>
-                      <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-bold">{t(locale, 'stats_years')} من الخبرة</p>
-                    </div>
+      {/* ============ TEACHER ============ */}
+      <section className="py-16 lg:py-24 bg-card relative overflow-hidden">
+        <div className="container-bold">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            <motion.div {...fade(0)} className="relative">
+              <div className="relative rounded-3xl overflow-hidden shadow-[0_24px_60px_-12px_rgba(0,0,0,0.25)] ring-1 ring-border">
+                <Image src="/images/teacher/omar-hero.png" alt="Omar — الأستاذ عمر" width={560} height={700} className="w-full h-auto object-cover" priority />
+                <div className="absolute bottom-0 inset-x-0 h-28 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+              </div>
+              <div className="absolute -bottom-4 start-6 px-4 py-3 rounded-xl bg-card border border-border shadow-card">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center">
+                    <Award className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-display text-base font-extrabold text-gradient leading-none">{t(locale, 'home_teacher_years')}</p>
+                    <p className="text-[10px] text-muted-foreground font-semibold mt-1">{t(locale, 'home_teacher_years_sub')}</p>
                   </div>
                 </div>
               </div>
             </motion.div>
 
-            {/* Teacher Info */}
-            <motion.div
-              initial={{ opacity: 0, x: isRtl ? -60 : 60 }}
-              animate={teacherInView ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.8, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <span className="inline-flex items-center gap-2 text-brand-orange text-[11px] font-bold uppercase tracking-[0.25em] mb-5">
-                <span className="w-10 h-0.5 bg-gradient-to-r from-brand-orange to-brand-red rounded-full" />
-                المدرس المعتمد
-              </span>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-foreground leading-tight mb-6">
-                تعلّم الألمانية مع <span className="text-gradient">الأستاذ عمر</span>
+            <motion.div {...fade(0.1)}>
+              <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-5 border border-brand-orange/25 bg-brand-orange/5">
+                <span className="w-1.5 h-1.5 bg-brand-orange rounded-full" />
+                <span className="text-brand-orange text-[11px] font-bold tracking-wide uppercase">{t(locale, 'home_teacher_badge')}</span>
+              </div>
+              <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground leading-tight mb-4 text-balance">
+                {t(locale, 'home_teacher_title_1')} <span className="text-gradient">{t(locale, 'home_teacher_title_2')}</span>
               </h2>
-              <p className="text-muted-foreground leading-[1.9] text-lg mb-8">
-                مدرس ألماني معتمد بخبرة تزيد عن 8 سنوات في تعليم اللغة الألمانية للناطقين بالعربية. متخصص في تحضير الطلاب لاختبارات Goethe من A1 إلى C1 بمنهج مبسط وأساليب تفاعلية حديثة.
+              <p className="text-muted-foreground leading-relaxed text-base mb-7">
+                {t(locale, 'home_teacher_desc')}
               </p>
-
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                {[
-                  { icon: GraduationCap, text: 'شهادة Goethe المعتمدة', color: 'from-brand-orange/10 to-brand-red/10' },
-                  { icon: Target, text: 'نجاح 95%+ في الاختبارات', color: 'from-green-500/10 to-emerald-500/10' },
-                  { icon: Users, text: '+500 طالب نشط', color: 'from-blue-500/10 to-cyan-500/10' },
-                  { icon: BookOpen, text: '+200 درس مسجل', color: 'from-purple-500/10 to-violet-500/10' },
-                ].map((item, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={teacherInView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ delay: 0.4 + i * 0.1, duration: 0.5 }}
-                    className="flex items-center gap-3 p-4 rounded-2xl bg-white dark:bg-card border-2 border-border/30 hover:border-brand-orange/25 hover:shadow-card-hover transition-all duration-300 group"
-                  >
-                    <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
-                      <item.icon className="w-5 h-5 text-brand-orange" />
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-7">
+                {[{ icon: GraduationCap, title: t(locale, 'home_teacher_stat_1'), count: t(locale, 'home_teacher_stat_3') }, { icon: Target, title: t(locale, 'home_teacher_stat_2') }, { icon: Users, title: t(locale, 'home_teacher_stat_3') }, { icon: BookOpen, title: t(locale, 'home_teacher_stat_4') }].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3 pb-3 border-b border-border/70 last:border-0">
+                    <div className="w-9 h-9 rounded-lg bg-brand-orange/10 flex items-center justify-center shrink-0">
+                      <item.icon className="w-4 h-4 text-brand-orange" />
                     </div>
-                    <p className="text-sm font-semibold text-foreground/80">{item.text}</p>
-                  </motion.div>
+                    <div className="min-w-0">
+                      <h3 className="font-display text-sm font-bold text-foreground leading-tight">{item.title}</h3>
+                      <p className="text-xs text-muted-foreground">{item.count}</p>
+                    </div>
+                  </div>
                 ))}
               </div>
-
-              <button
-                onClick={() => navigate('about')}
-                className="group inline-flex items-center gap-2 text-sm font-bold text-brand-orange hover:text-brand-orange-dark transition-colors duration-300"
-              >
+              <button onClick={() => navigate('about')} className="group inline-flex items-center gap-2 text-sm font-bold text-brand-orange hover:text-brand-orange-dark transition-colors">
                 {t(locale, 'hero_cta_secondary')}
                 <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </button>
@@ -317,74 +311,52 @@ export default function HomeView() {
         </div>
       </section>
 
-      {/* ═══════════ STATS ═══════════ */}
-      <section className="relative py-14 sm:py-18 bg-white dark:bg-card overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-orange via-brand-red to-brand-orange" />
-        <div className="absolute top-1/2 start-1/4 w-48 h-48 bg-brand-orange/5 rounded-full blur-[80px]" />
-        <div className="absolute top-1/2 end-1/4 w-48 h-48 bg-brand-red/5 rounded-full blur-[80px]" />
-        <div className="container-bold" ref={setCountersRef}>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+      {/* ============ STATS ============ */}
+      <section className="py-12 bg-card border-y border-border/60 dark:border-border" ref={setCountersRef}>
+        <div className="container-bold">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { count: yearsCount.count, label: t(locale, 'stats_years'), icon: Award, gradient: 'from-brand-orange/10 to-brand-red/10' },
-              { count: coursesCount.count, label: t(locale, 'stats_courses'), icon: BookOpen, gradient: 'from-blue-500/10 to-blue-600/10' },
-              { count: lessonsCount.count, label: t(locale, 'stats_lessons'), icon: Clock, gradient: 'from-green-500/10 to-green-600/10' },
-              { count: studentsCount.count, label: t(locale, 'stats_students'), icon: Users, gradient: 'from-purple-500/10 to-purple-600/10' },
+              { count: yearsCount.count, label: t(locale, 'stats_years'), icon: Award },
+              { count: coursesCount.count, label: t(locale, 'stats_courses'), icon: BookOpen },
+              { count: lessonsCount.count, label: t(locale, 'stats_lessons'), icon: Clock },
+              { count: studentsCount.count, label: t(locale, 'stats_students'), icon: Users },
             ].map((item, i) => (
-              <div key={i} className={`text-center ${i < 3 ? 'md:border-e md:border-border/60' : ''}`}>
-                <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center hover:scale-110 transition-transform shadow-card`}>
-                  <item.icon className="w-7 h-7 text-brand-orange" />
+              <motion.div key={i} {...fade(i * 0.06)} className="flex items-center gap-4">
+                <div className="w-11 h-11 shrink-0 rounded-xl bg-brand-orange/8 flex items-center justify-center">
+                  <item.icon className="w-5 h-5 text-brand-orange" />
                 </div>
-                <div className="text-4xl sm:text-5xl font-black text-foreground tracking-tight mb-1">
-                  {item.count}<span className="text-gradient">+</span>
+                <div>
+                  <div className="font-display text-2xl md:text-3xl font-extrabold text-foreground tracking-tight leading-none number-display">
+                    {item.count}<span className="text-gradient">+</span>
+                  </div>
+                  <p className="text-[11px] font-semibold tracking-wider text-muted-foreground mt-1">{item.label}</p>
                 </div>
-                <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-semibold">{item.label}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═══════════ GERMAN LEVELS SECTION ═══════════ */}
-      <section className="py-16 sm:py-24 lg:py-32 bg-white dark:bg-card relative overflow-hidden">
-        <div className="absolute top-0 start-1/4 w-64 h-64 bg-brand-orange/5 rounded-full blur-[100px]" />
-        <div className="absolute bottom-0 end-1/4 w-64 h-64 bg-brand-red/5 rounded-full blur-[100px]" />
-        <div className="container-bold" ref={germanRef}>
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            animate={germanInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.7 }}
-            className="text-center mb-16"
-          >
-            <span className="inline-flex items-center gap-2 text-brand-orange text-[11px] font-bold uppercase tracking-[0.25em] mb-4">
-              <span className="w-10 h-0.5 bg-gradient-to-r from-brand-orange to-brand-red rounded-full" />
-              مستويات اللغة الألمانية
-              <span className="w-10 h-0.5 bg-gradient-to-r from-brand-red to-brand-orange rounded-full" />
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-black text-foreground">من الصفر إلى الاحتراف</h2>
-            <p className="mt-4 text-muted-foreground text-lg max-w-2xl mx-auto">
-              كل مستوى مصمم بعناية ليأخذك خطوة أخرى نحو إتقان اللغة الألمانية
-            </p>
+      {/* ============ LEVELS ============ */}
+      <section className="py-16 lg:py-20 bg-brand-warm dark:bg-accent relative overflow-hidden">
+        <div className="container-bold">
+          <motion.div {...fade(0)}>
+            <SectionTitle badge={t(locale, 'home_levels_badge')} title={t(locale, 'home_levels_title')} subtitle={t(locale, 'home_levels_subtitle')} />
           </motion.div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-5">
-            {germanLevels.map((item, i) => (
-              <motion.button
-                key={item.level}
-                initial={{ opacity: 0, y: 28 }}
-                animate={germanInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.6, delay: i * 0.1, ease: [0.4, 0, 0.2, 1] }}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {LEVELS.map((level, i) => (
+              <motion.button key={level} {...fade(i * 0.06)}
                 onClick={() => navigate('courses')}
-                className="group relative p-7 text-center rounded-3xl border-2 border-border/50 bg-white dark:bg-card hover:border-brand-orange/30 hover:shadow-card-hover transition-all duration-500 cursor-pointer overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-brand-orange/5 to-brand-red/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                className="group relative p-5 rounded-xl border border-border/70 bg-card hover:border-brand-orange/40 hover:-translate-y-1 transition-all duration-300 text-center overflow-hidden">
+                <span className="font-display text-4xl font-black absolute -top-0.5 -end-0.5 opacity-[0.06] text-foreground">{level}</span>
                 <div className="relative z-10">
-                  <span className="text-5xl sm:text-7xl font-black text-foreground/10 group-hover:text-brand-orange/15 transition-colors duration-500 absolute -top-3 -end-1">{item.level}</span>
-                  <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center group-hover:scale-110 transition-all duration-500 shadow-lg`}>
-                    <item.icon className="w-7 h-7 text-white" />
+                  <div className="w-11 h-11 mx-auto mb-3 rounded-lg bg-gradient-to-br from-brand-orange/10 to-brand-red/10 flex items-center justify-center group-hover:from-brand-orange group-hover:to-brand-red transition-all duration-300">
+                    <span className="font-display text-base font-extrabold text-brand-orange group-hover:text-white transition-colors duration-300">{level}</span>
                   </div>
-                  <h3 className="font-black text-foreground mb-1">{item.level}</h3>
-                  <p className="text-xs font-semibold text-brand-orange mb-2">{item.titleAr}</p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">{item.descAr}</p>
+                  <div className="flex items-center justify-center gap-1 text-[11px] font-semibold text-muted-foreground group-hover:text-brand-orange transition-colors duration-200">
+                    <span>{t(locale, 'courses_view_details')}</span>
+                    <Play className="w-3 h-3" />
+                  </div>
                 </div>
               </motion.button>
             ))}
@@ -392,162 +364,186 @@ export default function HomeView() {
         </div>
       </section>
 
-      {/* ═══════════ LEARNING TIPS ═══════════ */}
-      <section className="py-16 sm:py-24 lg:py-32 bg-brand-warm dark:bg-accent relative overflow-hidden">
-        <div className="absolute top-0 end-0 w-72 h-72 bg-brand-orange/5 rounded-full blur-[100px]" />
-        <div className="absolute bottom-0 start-0 w-72 h-72 bg-brand-red/5 rounded-full blur-[100px]" />
-        <div className="container-bold" ref={tipsRef}>
-          <div className="grid lg:grid-cols-2 gap-10 sm:gap-14 lg:gap-20 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: isRtl ? 40 : -40 }}
-              animate={tipsInView ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.7 }}
-            >
-              <span className="inline-flex items-center gap-2 text-brand-orange text-[11px] font-bold uppercase tracking-[0.25em] mb-5">
-                <span className="w-10 h-0.5 bg-gradient-to-r from-brand-orange to-brand-red rounded-full" />
-                نصائح للتعلّم
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-black text-foreground leading-tight mb-6">
-                كيف تتعلّم الألمانية <span className="text-gradient">بفعالية</span>
-              </h2>
-              <p className="text-muted-foreground leading-[1.9] text-lg mb-4">
-                تعلّم اللغة الجديدة ليس سهلاً، لكن بالطريقة الصحيحة يمكن أن يكون ممتعاً ومحفّزاً. إليك بعض النصائح المهمة من خبرتنا في تعليم الألمانية.
-              </p>
+      {/* ============ EDUCATIONAL VIDEOS ============ */}
+      {reels.length > 0 && (
+        <section className="py-16 lg:py-20 bg-brand-warm dark:bg-accent relative overflow-hidden">
+          <div className="container-bold">
+            <motion.div {...fade(0)}>
+              <SectionTitle badge={t(locale, 'reels_title')} title={t(locale, 'reels_title')} subtitle={t(locale, 'reels_subtitle')} />
+            </motion.div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-4xl mx-auto">
+              {reels.slice(0, 3).map((reel, i) => (
+                <motion.button key={reel.id} {...fade(i * 0.07)}
+                  onClick={() => setActiveReel(reel)}
+                  className="group relative aspect-[9/16] rounded-2xl overflow-hidden shadow-lg shadow-black/10 ring-1 ring-black/5 dark:ring-white/10 cursor-pointer text-start">
+                  {reel.thumbnail ? (
+                    <Image src={reel.thumbnail} alt={getReelField(reel, 'title')} fill sizes="(max-width:1024px) 50vw, 25vw" className="object-cover group-hover:scale-[1.03] transition-transform duration-500" />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-brand-dark to-[#1a1008]" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <motion.div whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.96 }}
+                      className="w-14 h-14 rounded-full flex items-center justify-center border border-white/25 backdrop-blur-md transition-all"
+                      style={{ background: 'rgba(0,0,0,0.4)' }}>
+                      <Play className="w-5 h-5 text-white ms-0.5 fill-white" />
+                    </motion.div>
+                  </div>
+                  <div className="absolute bottom-0 inset-x-0 p-4">
+                    <h3 className="font-display text-sm font-bold text-white mb-1 line-clamp-2">{getReelField(reel, 'title')}</h3>
+                    {formatDuration(reel.duration) && (
+                      <p className="text-[11px] font-semibold text-white/60">{formatDuration(reel.duration)}</p>
+                    )}
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
-              <div className="bg-white dark:bg-card rounded-3xl p-8 border-2 border-border/50 shadow-card-hover overflow-hidden relative">
-                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-brand-orange via-brand-red to-brand-orange" />
-                <div className="space-y-5">
-                  {[
-                    { word: 'Guten Morgen', meaning: 'صباح الخير', pron: 'غوتن مورغن' },
-                    { word: 'Wie geht es Ihnen?', meaning: 'كيف حالك؟', pron: 'في غايت إس إينن' },
-                    { word: 'Danke schön', meaning: 'شكراً جزيلاً', pron: 'دانكه شون' },
-                    { word: 'Entschuldigung', meaning: 'عذراً', pron: 'أنتشولديغونغ' },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-4 p-3 rounded-xl hover:bg-brand-orange/5 transition-colors">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-orange/10 to-brand-red/10 flex items-center justify-center shrink-0">
-                        <span className="text-brand-orange font-bold text-sm">{i + 1}</span>
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-foreground">{item.word}</p>
-                        <p className="text-sm text-muted-foreground">{item.meaning}</p>
-                      </div>
-                      <span className="text-xs text-brand-orange font-medium bg-brand-orange/10 px-3 py-1 rounded-lg">{item.pron}</span>
-                    </div>
-                  ))}
-                </div>
+      {/* ============ REEL MODAL ============ */}
+      <AnimatePresence>
+        {activeReel && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            onClick={() => setActiveReel(null)}>
+            <motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 12 }} transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-2xl relative">
+              <button onClick={() => setActiveReel(null)} aria-label="إغلاق"
+                className="absolute -top-11 end-0 text-white/70 hover:text-white transition-colors text-sm font-bold flex items-center gap-1">
+                <X className="w-5 h-5" />
+              </button>
+              {(() => {
+                const embed = getReelEmbedUrl(activeReel);
+                return embed ? (
+                  <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ aspectRatio: '16/9' }}>
+                    <iframe src={embed} title={getReelField(activeReel, 'title')} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen className="absolute inset-0 w-full h-full" />
+                  </div>
+                ) : (
+                  <video src={activeReel.videoUrl} controls autoPlay className="w-full rounded-2xl shadow-2xl" style={{ aspectRatio: '16/9' }} />
+                );
+              })()}
+              <div className="mt-4 text-center">
+                <h3 className="font-display text-lg font-black text-white">{getReelField(activeReel, 'title')}</h3>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            <motion.div
-              initial={{ opacity: 0, x: isRtl ? -40 : 40 }}
-              animate={tipsInView ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              className="space-y-5"
-            >
-              {learningTips.map((tip, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={tipsInView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ delay: 0.3 + i * 0.1, duration: 0.5 }}
-                  className="flex items-start gap-5 p-6 rounded-3xl bg-white dark:bg-card border-2 border-border/50 hover:border-brand-orange/25 hover:shadow-card-hover transition-all duration-300 group"
-                >
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-orange/10 to-brand-red/10 flex items-center justify-center shrink-0 group-hover:from-brand-orange group-hover:to-brand-red transition-all duration-300 shadow-card">
-                    <tip.icon className="w-6 h-6 text-brand-orange group-hover:text-white transition-colors" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-foreground mb-1">{tip.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{tip.desc}</p>
+      {/* ============ TESTIMONIALS ============ */}
+      {testimonials.length > 0 && (
+        <section className="py-16 lg:py-20 bg-white dark:bg-card relative overflow-hidden">
+          <div className="container-bold">
+            <motion.div {...fade(0)}>
+              <SectionTitle badge={t(locale, 'testimonials_title')} title={t(locale, 'testimonials_title')} subtitle={t(locale, 'testimonials_subtitle')} />
+            </motion.div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {testimonials.slice(0, 3).map((testimonial, i) => (
+                <motion.div key={testimonial.id} {...fade(i * 0.07)}>
+                  <div className="p-6 h-full rounded-2xl border border-border/70 bg-card hover:border-brand-orange/25 transition-colors duration-300">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center text-white text-base font-bold shrink-0">
+                        {getTestimonialField(testimonial as unknown as Record<string, unknown>, 'name').charAt(0)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-display font-bold text-sm text-foreground truncate">{getTestimonialField(testimonial as unknown as Record<string, unknown>, 'name')}</p>
+                        <p className="text-xs text-muted-foreground truncate">{getTestimonialField(testimonial as unknown as Record<string, unknown>, 'role')}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-0.5 mb-3">
+                      {Array.from({ length: 5 }).map((_, j) => (
+                        <Star key={j} className={'w-3.5 h-3.5 ' + (j < testimonial.rating ? 'text-amber-400 fill-amber-400' : 'text-muted')} />
+                      ))}
+                    </div>
+                    <p className="text-sm leading-relaxed text-foreground/75">&ldquo;{getTestimonialField(testimonial as unknown as Record<string, unknown>, 'text')}&rdquo;</p>
+                    {testimonial.level && <span className="inline-block mt-4 level-badge">{testimonial.level}</span>}
                   </div>
                 </motion.div>
               ))}
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════ COURSE LEVELS ═══════════ */}
-      <section className="py-16 sm:py-24 lg:py-32 bg-white dark:bg-card relative overflow-hidden">
-        <div className="absolute top-1/3 start-1/4 w-56 h-56 bg-brand-orange/5 rounded-full blur-[100px]" />
-        <div className="absolute bottom-1/3 end-1/4 w-56 h-56 bg-brand-red/5 rounded-full blur-[100px]" />
-        <div className="container-bold" ref={levelsRef}>
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={levelsInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-16"
-          >
-            <span className="inline-flex items-center gap-2 text-brand-orange text-[11px] font-bold uppercase tracking-[0.25em] mb-4">
-              <span className="w-10 h-0.5 bg-gradient-to-r from-brand-orange to-brand-red rounded-full" />
-              {t(locale, 'courses_all_levels')}
-              <span className="w-10 h-0.5 bg-gradient-to-r from-brand-red to-brand-orange rounded-full" />
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-black text-foreground">{t(locale, 'courses_title')}</h2>
-            <p className="mt-3 text-muted-foreground text-lg">{t(locale, 'courses_subtitle')}</p>
-          </motion.div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-5">
-            {LEVELS.map((level, i) => (
-              <motion.button
-                key={level}
-                initial={{ opacity: 0, y: 24 }}
-                animate={levelsInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.5, delay: i * 0.1, ease: [0.4, 0, 0.2, 1] }}
-                onClick={() => navigate('courses')}
-                className="group relative p-8 text-center rounded-3xl border-2 border-border/50 bg-white dark:bg-card hover:border-brand-orange/30 hover:shadow-card-hover transition-all duration-500 cursor-pointer overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-brand-orange/5 to-brand-red/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="relative z-10">
-                  <span className="text-5xl sm:text-7xl font-black text-foreground/10 group-hover:text-brand-orange/15 transition-colors duration-500 absolute -top-3 -end-1">{level}</span>
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-brand-orange/10 to-brand-red/10 flex items-center justify-center group-hover:from-brand-orange group-hover:to-brand-red group-hover:scale-110 transition-all duration-500 shadow-lg">
-                    <span className="text-xl font-black text-brand-orange group-hover:text-white transition-colors duration-500">{level}</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground group-hover:text-brand-orange transition-colors duration-300">
-                    <span>{t(locale, 'courses_view_details')}</span>
-                    <Play className="w-4 h-4" />
-                  </div>
-                </div>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════ CTA SECTION ═══════════ */}
-      <section className="py-16 sm:py-24 lg:py-32">
-        <div className="container-bold">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-dark via-[#1a1008] to-[#0f0f0f] p-8 sm:p-12 lg:p-24">
-            <div className="absolute top-0 start-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-brand-orange/10 rounded-full blur-[140px]" />
-            <div className="absolute bottom-0 end-0 w-[500px] h-[250px] bg-brand-red/8 rounded-full blur-[120px]" />
-            <div className="absolute top-1/2 start-0 w-[250px] h-[500px] bg-brand-orange/5 rounded-full blur-[100px]" />
-            {/* Decorative dots */}
-            <div className="absolute top-8 start-8 w-2 h-2 bg-brand-orange/30 rounded-full" />
-            <div className="absolute top-16 start-16 w-1.5 h-1.5 bg-brand-red/20 rounded-full" />
-            <div className="absolute bottom-8 end-16 w-2 h-2 bg-brand-orange/20 rounded-full" />
-
-            <div className="relative z-10 text-center max-w-2xl mx-auto">
-              <span className="inline-flex items-center gap-2 text-brand-orange text-[11px] font-bold uppercase tracking-[0.25em] mb-6">
-                <span className="w-10 h-0.5 bg-gradient-to-r from-brand-orange to-brand-red rounded-full" />
-                Deutsch mit Omar
-                <span className="w-10 h-0.5 bg-gradient-to-r from-brand-red to-brand-orange rounded-full" />
-              </span>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-tight mb-5 drop-shadow-lg">
-                {t(locale, 'carousel_3_title')}
-              </h2>
-              <p className="text-white/45 leading-relaxed mb-10 text-lg drop-shadow">
-                {t(locale, 'carousel_3_desc')}
-              </p>
-              <button
-                onClick={() => navigate('courses')}
-                className="group inline-flex items-center gap-2 px-6 sm:px-10 py-3.5 sm:py-4 text-sm font-bold tracking-wide uppercase bg-gradient-to-r from-brand-orange to-brand-red text-white rounded-2xl hover:from-brand-orange-dark hover:to-brand-red-dark active:scale-[0.97] transition-all duration-300 shadow-glow-lg hover:shadow-brand-orange/50"
-              >
-                {t(locale, 'hero_cta_primary')}
-                <ArrowUpRight className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </button>
             </div>
           </div>
+        </section>
+      )}
+
+      {/* ============ BLOG / POSTS ============ */}
+      {posts.length > 0 && (
+        <section className="py-16 lg:py-20 bg-brand-warm dark:bg-accent relative overflow-hidden">
+          <div className="container-bold">
+            <motion.div {...fade(0)}>
+              <div className="flex items-end justify-between gap-4">
+                <SectionTitle badge={t(locale, 'home_latest_posts')} title={t(locale, 'home_latest_posts')} />
+                <button onClick={() => navigate('posts')} className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-brand-orange hover:text-brand-orange-dark transition-colors pb-1 shrink-0">
+                  {t(locale, 'home_view_all')} <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </motion.div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {posts.slice(0, 3).map((post, i) => (
+                <motion.div key={post.id} {...fade(i * 0.07)}>
+                  <div onClick={() => navigate('post-detail', { id: post.id })} className="group cursor-pointer">
+                    <div className="overflow-hidden rounded-xl border border-border/70 bg-card hover:border-brand-orange/30 hover:-translate-y-1 transition-all duration-300">
+                      <div className="relative aspect-[16/10] overflow-hidden">
+                        <Image src={post.imageUrl || '/images/berlin/brandenburg-gate.png'} alt={getPostField(post as unknown as Record<string, unknown>, 'title')} fill sizes="(max-width:1024px) 100vw, 33vw" className="object-cover group-hover:scale-[1.04] transition-transform duration-500" />
+                        {post.category && <span className="absolute top-3 start-3 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-brand-orange text-white rounded-md">{post.category}</span>}
+                      </div>
+                      <div className="p-5">
+                        <h3 className="font-display font-bold text-foreground mb-1.5 line-clamp-2 group-hover:text-brand-orange transition-colors text-[15px] leading-snug">{getPostField(post as unknown as Record<string, unknown>, 'title')}</h3>
+                        <p className="text-[13px] text-muted-foreground line-clamp-2 mb-3 leading-relaxed">{getPostField(post as unknown as Record<string, unknown>, 'excerpt')}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] text-muted-foreground font-medium">{new Date(post.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'de' ? 'de-DE' : 'en-US')}</span>
+                          <span className="text-[11px] font-bold text-brand-orange flex items-center gap-1 group-hover:gap-1.5 transition-all">{t(locale, 'home_read_more')} <ArrowUpRight className="w-3 h-3" /></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ============ FINAL CTA ============ */}
+      <section className="py-14">
+        <div className="container-bold">
+          <motion.div {...fade(0)}>
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-dark via-[#1a1008] to-[#0f0f0f] px-6 py-10 sm:p-12 lg:p-14 text-center">
+              <img
+                src="/images/berlin/brandenburg-gate.png"
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover opacity-40 select-none pointer-events-none"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/60 pointer-events-none" />
+              <div className="absolute top-0 start-1/2 -translate-x-1/2 w-[420px] h-[220px] rounded-full blur-[90px] pointer-events-none" style={{ background: 'rgba(232, 93, 38, 0.22)' }} />
+              <div className="absolute bottom-0 end-0 w-[320px] h-[180px] rounded-full blur-[80px] pointer-events-none" style={{ background: 'rgba(220, 53, 69, 0.16)' }} />
+              <div className="relative z-10 max-w-xl mx-auto">
+                <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-5 border border-white/15" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                  <span className="w-1.5 h-1.5 bg-brand-orange rounded-full" />
+                  <span className="text-[11px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'rgba(255,255,255,0.75)' }}>Deutsch mit Omar</span>
+                </div>
+                <h2 className="font-display text-2xl sm:text-3xl lg:text-[2.4rem] font-black text-white leading-tight mb-3 text-balance">{t(locale, 'carousel_3_title')}</h2>
+                <p className="leading-relaxed mb-7 text-sm sm:text-base max-w-md mx-auto" style={{ color: 'rgba(255,255,255,0.5)' }}>{t(locale, 'carousel_3_desc')}</p>
+                <button onClick={() => navigate('courses')} className="group inline-flex items-center gap-2 px-6 py-3 text-sm font-bold tracking-wide uppercase text-white rounded-xl shadow-lg shadow-brand-orange/30 hover:shadow-brand-orange/45 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200" style={{ background: 'linear-gradient(135deg, #E85D26, #DC3545)' }}>
+                  {t(locale, 'hero_cta_primary')}
+                  <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
     </div>
+  );
+}
+
+function CalendarIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
   );
 }

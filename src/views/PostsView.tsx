@@ -7,6 +7,7 @@ import { useAppStore } from '@/stores/app-store';
 import { t } from '@/lib/i18n';
 import { format } from 'date-fns';
 import { ar, de, enUS } from 'date-fns/locale';
+import SectionTitle from '@/components/SectionTitle';
 
 const CATEGORIES = ['education', 'exams', 'lifestyle', 'grammar'];
 
@@ -47,31 +48,17 @@ export default function PostsView() {
   return (
     <div className="pt-8 pb-20">
       <div className="container-bold">
-        <div className="text-center mb-12">
-          <motion.h1
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-3xl sm:text-4xl font-black text-foreground mb-3"
-          >
-            {t(locale, 'posts_title')}
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-muted-foreground text-lg"
-          >
-            {t(locale, 'posts_subtitle')}
-          </motion.p>
+        <div className="text-center mb-10">
+          <SectionTitle badge={t(locale, 'posts_title')} title={t(locale, 'posts_title')} subtitle={t(locale, 'posts_subtitle')} />
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2.5 mb-12">
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
           <button
             onClick={() => setActiveCategory('all')}
-            className={`px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${
+            className={`px-5 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${
               activeCategory === 'all'
-                ? 'bg-gradient-to-r from-brand-orange to-brand-red text-white shadow-glow'
-                : 'bg-white border-2 border-border text-muted-foreground hover:text-foreground hover:border-brand-orange/30 hover:shadow-card'
+                ? 'bg-gradient-to-r from-brand-orange to-brand-red text-white'
+                : 'bg-white border border-border text-muted-foreground hover:text-foreground hover:border-brand-orange/20'
             }`}
           >
             {t(locale, 'posts_all')}
@@ -80,10 +67,10 @@ export default function PostsView() {
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${
+              className={`px-5 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${
                 activeCategory === cat
-                  ? 'bg-gradient-to-r from-brand-orange to-brand-red text-white shadow-glow'
-                  : 'bg-white border-2 border-border text-muted-foreground hover:text-foreground hover:border-brand-orange/30 hover:shadow-card'
+                  ? 'bg-gradient-to-r from-brand-orange to-brand-red text-white'
+                  : 'bg-white border border-border text-muted-foreground hover:text-foreground hover:border-brand-orange/20'
               }`}
             >
               {cat}
@@ -92,62 +79,62 @@ export default function PostsView() {
         </div>
 
         {loading ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3].map(i => (
               <div key={i} className="card-bold overflow-hidden">
-                <div className="h-52 skeleton-bold" />
-                <div className="p-6 space-y-4">
-                  <div className="h-4 w-20 skeleton-bold rounded-lg" />
-                  <div className="h-6 w-3/4 skeleton-bold rounded-lg" />
-                  <div className="h-4 w-full skeleton-bold rounded-lg" />
+                <div className="h-44 skeleton-bold" />
+                <div className="p-5 space-y-3">
+                  <div className="h-3 w-16 skeleton-bold rounded-lg" />
+                  <div className="h-5 w-3/4 skeleton-bold rounded-lg" />
+                  <div className="h-3 w-full skeleton-bold rounded-lg" />
                 </div>
               </div>
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-20 text-muted-foreground">
-            <p>{t(locale, 'posts_no_posts')}</p>
+          <div className="text-center py-16 text-muted-foreground">
+            <p className="text-sm">{t(locale, 'posts_no_posts')}</p>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((post, i) => (
               <motion.div
                 key={post.id}
-                initial={{ opacity: 0, y: 24 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
+                transition={{ duration: 0.4, delay: i * 0.08 }}
                 className="card-bold overflow-hidden group cursor-pointer"
                 onClick={() => navigate('post-detail', { id: post.id })}
               >
-                <div className="relative h-52 overflow-hidden">
+                <div className="relative h-44 overflow-hidden">
                   <img
                     src={post.imageUrl || '/images/berlin/brandenburg-gate.png'}
                     alt=""
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                   {post.category && (
-                    <div className="absolute top-3 start-3">
-                      <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold bg-white/90 text-foreground rounded-xl">
-                        <Tag className="w-3 h-3" /> {post.category}
+                    <div className="absolute top-2.5 start-2.5">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[9px] font-bold bg-white/90 text-foreground rounded-md">
+                        <Tag className="w-2.5 h-2.5" /> {post.category}
                       </span>
                     </div>
                   )}
                 </div>
-                <div className="p-6">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2 font-medium">
-                    <Calendar className="w-3.5 h-3.5" />
+                <div className="p-4">
+                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1.5 font-medium">
+                    <Calendar className="w-3 h-3" />
                     <span>{format(new Date(post.createdAt), 'd MMM yyyy', { locale: dateLocale })}</span>
                   </div>
-                  <h3 className="font-bold text-foreground mb-2 line-clamp-2 text-lg">
+                  <h3 className="font-bold text-foreground mb-1 line-clamp-2 text-sm">
                     {getField(post as unknown as Record<string, unknown>, 'title')}
                   </h3>
-                  <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
                     {getField(post as unknown as Record<string, unknown>, 'excerpt')}
                   </p>
-                  <span className="inline-flex items-center gap-1 text-sm font-bold text-brand-orange group-hover:gap-2 transition-all">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-orange group-hover:gap-1.5 transition-all">
                     {t(locale, 'posts_read_more')}
-                    <Arrow className="w-4 h-4" />
+                    <Arrow className="w-3 h-3" />
                   </span>
                 </div>
               </motion.div>

@@ -1,75 +1,65 @@
-import { db } from '@/lib/db';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { decodeUserId } from '@/lib/admin-auth';
 import { NextResponse } from 'next/server';
 
-export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const { searchParams } = new URL(req.url);
     const includeLessons = searchParams.get('includeLessons') === 'true';
     const withProgress = searchParams.get('withProgress') === 'true';
 
-    const authHeader = req.headers.get('Authorization');
-    let userId: string | null = null;
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '');
-      const decoded = Buffer.from(token, 'base64').toString('utf-8');
-      userId = decoded.split(':')[0];
-    }
+    const userId = decodeUserId(req);
 
-    const course = await db.course.findUnique({
-      where: { id },
-      include: includeLessons
-        ? {
-            lessons: {
-              select: {
-                id: true, titleAr: true, titleDe: true, titleEn: true,
-                descriptionAr: true, descriptionDe: true, descriptionEn: true,
-                duration: true, order: true, isFree: true, videoUrl: true,
-                ...(withProgress && userId ? {
-                  progress: { where: { userId }, select: { completed: true } },
-                } : {}),
-              },
-              orderBy: { order: 'asc' },
-            },
-          }
-        : undefined,
-    });
+    const { data: course, error } = await supabase
+      .from('courses')
+      .select(includeLessons ? '*, lessons(*)' : '*')
+      .eq('id', id)
+      .single();
 
-    if (!course) {
+    if (error || !course) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
-    let enrollment = null;
+    let enrollment: { isActive: boolean; expiresAt: string | null; activatedAt: string | null } | null = null;
     if (userId) {
-      enrollment = await db.enrollment.findUnique({
-        where: { userId_courseId: { userId, courseId: id } },
-        select: { isActive: true, expiresAt: true, activatedAt: true },
-      });
+      const { data } = await supabaseAdmin
+        .from('enrollments')
+        .select('isActive, expiresAt, activatedAt')
+        .eq('userId', userId)
+        .eq('courseId', id)
+        .single();
+
+      enrollment = data ? {
+        ...data,
+        expiresAt: data.expiresAt || null,
+        activatedAt: data.activatedAt,
+        isActive: data.isActive && (!data.expiresAt || new Date(data.expiresAt) > new Date()),
+      } : null;
     }
 
-    // Transform lessons to include progress
-    const lessons = includeLessons && course.lessons
-      ? course.lessons.map(l => ({
-          ...l,
-          progress: (l as Record<string, unknown>).progress
-            ? { completed: ((l as Record<string, unknown>).progress as Array<{ completed: boolean }>).some(p => p.completed) }
-            : undefined,
-        }))
-      : undefined;
+    const courseData = course as any;
+
+    // If withProgress and userId, add progress to lessons
+    let lessons = courseData.lessons;
+    if (includeLessons && withProgress && userId && lessons) {
+      const { data: progressData } = await supabaseAdmin
+        .from('lessonProgress')
+        .select('lessonId, completed')
+        .eq('userId', userId);
+
+      const progressMap = new Map((progressData || []).map((p) => [p.lessonId, p.completed]));
+      lessons = lessons.map((l: Record<string, unknown>) => ({
+        ...l,
+        progress: progressMap.has(l.id as string) ? { completed: progressMap.get(l.id as string) } : undefined,
+      }));
+    }
 
     return NextResponse.json({
       course: {
-        ...course,
+        ...courseData,
         ...(lessons ? { lessons } : {}),
-        enrollment: enrollment ? {
-          ...enrollment,
-          expiresAt: enrollment.expiresAt?.toISOString() || null,
-          activatedAt: enrollment.activatedAt.toISOString(),
-          isActive: enrollment.isActive && (!enrollment.expiresAt || new Date(enrollment.expiresAt) > new Date()),
-        } : null,
+        enrollment,
       },
     });
   } catch (error) {
