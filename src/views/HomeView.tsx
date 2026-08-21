@@ -210,26 +210,36 @@ export default function HomeView() {
         </div>
       </section>
 
-      {/* ============ FEATURES STRIP ============ */}
-      <section className="py-12 bg-card border-y border-border/60 dark:border-border">
+      {/* ============ VALUE BAND ============ */}
+      <section className="py-12">
         <div className="container-bold">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {features.map((f, i) => (
-              <motion.button
-                key={i}
-                {...fade(i * 0.06)}
-                onClick={() => navigate('courses')}
-                className="group flex items-center gap-3.5 p-4 rounded-xl border border-border/70 bg-card hover:border-brand-orange/35 hover:-translate-y-0.5 transition-all duration-200 text-start"
-              >
-                <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center ${f.bg} transition-transform duration-200 group-hover:scale-105`}>
-                  <f.icon className={`w-5 h-5 ${f.color}`} />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-display font-bold text-sm text-foreground leading-tight">{t(locale, f.titleKey as any)}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{t(locale, f.descKey as any)}</p>
-                </div>
-              </motion.button>
-            ))}
+          <div className="relative overflow-hidden rounded-[2rem] lg:rounded-[2.5rem] bg-brand-warm dark:bg-accent px-6 sm:px-10 lg:px-14 py-12 lg:py-16">
+            {/* Soft organic brand shapes */}
+            <div className="absolute -top-24 -start-16 w-72 h-72 rounded-full bg-brand-orange/10 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -end-10 w-72 h-72 rounded-full bg-brand-red/10 blur-3xl pointer-events-none" />
+            <div className="relative grid lg:grid-cols-[0.9fr_1.1fr] gap-10 lg:gap-14 items-center">
+              <div>
+                <span className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-5 border border-brand-orange/25 bg-brand-orange/5">
+                  <span className="w-1.5 h-1.5 bg-brand-orange rounded-full" />
+                  <span className="text-brand-orange text-[11px] font-bold tracking-wide uppercase">{t(locale, 'home_why_omar')}</span>
+                </span>
+                <h2 className="font-display text-2xl sm:text-3xl lg:text-[2.1rem] font-black text-foreground leading-tight mb-3 text-balance">
+                  {t(locale, 'home_features_lead')}
+                </h2>
+                <p className="text-muted-foreground leading-relaxed text-sm max-w-md">{t(locale, 'home_features_lead_desc')}</p>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-x-8 gap-y-7">
+                {features.map((f, i) => (
+                  <motion.div key={i} {...fade(i * 0.06)} className="flex items-start gap-3.5">
+                    <f.icon className={`w-5 h-5 mt-0.5 shrink-0 ${f.color}`} />
+                    <div className="min-w-0">
+                      <p className="font-display font-bold text-[15px] text-foreground leading-tight">{t(locale, f.titleKey as any)}</p>
+                      <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{t(locale, f.descKey as any)}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -261,8 +271,10 @@ export default function HomeView() {
         <div className="container-bold">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             <motion.div {...fade(0)} className="relative">
-              <div className="relative rounded-3xl overflow-hidden shadow-[0_24px_60px_-12px_rgba(0,0,0,0.25)] ring-1 ring-border">
-                <Image src="/images/teacher/omar-hero.png" alt="Omar — الأستاذ عمر" width={560} height={700} className="w-full h-auto object-cover" priority />
+              <div className="relative rounded-3xl overflow-hidden shadow-[0_24px_60px_-12px_rgba(0,0,0,0.25)] ring-1 ring-border bg-brand-warm dark:bg-accent">
+                <div className="aspect-[4/5] sm:aspect-[5/6] w-full">
+                  <Image src="/images/teacher/omar-hero.png" alt="Omar — الأستاذ عمر" fill sizes="(max-width:1024px) 100vw, 45vw" className="object-cover object-top" priority />
+                </div>
                 <div className="absolute bottom-0 inset-x-0 h-28 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
               </div>
               <div className="absolute -bottom-4 start-6 px-4 py-3 rounded-xl bg-card border border-border shadow-card">

@@ -14,9 +14,6 @@ const navItems = [
   { key: 'nav_about', view: 'about' as const },
   { key: 'nav_courses', view: 'courses' as const },
   { key: 'nav_online_booking', view: 'online_booking' as const },
-  { key: 'nav_flashcards', view: 'flashcards' as const },
-  { key: 'nav_exams', view: 'exams' as const },
-  { key: 'nav_translation', view: 'translation' as const },
   { key: 'nav_posts', view: 'posts' as const },
   { key: 'nav_contact', view: 'contact' as const },
 ] as const;

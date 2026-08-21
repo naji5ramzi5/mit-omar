@@ -12,7 +12,7 @@ export async function GET(req: Request) {
 
     const { data: words, error } = await supabaseAdmin
       .from('words')
-      .select('id, wordDe, wordAr, wordEn, exampleDe, "order"')
+      .select('id, wordDe, wordAr, wordEn, exampleDe, exampleAr, exampleEn, audioUrl:audio_url, published, "order"')
       .eq('listId', listId)
       .order('order', { ascending: true });
 
@@ -30,11 +30,23 @@ export async function GET(req: Request) {
       if (progress?.length) dueIds = progress.map((p) => p.wordId);
     }
 
-    let cards = words;
+    let cards = words.map((w: any) => ({
+      id: w.id,
+      wordDe: w.wordDe,
+      wordAr: w.wordAr,
+      wordEn: w.wordEn,
+      exampleDe: w.exampleDe,
+      exampleAr: w.exampleAr,
+      exampleEn: w.exampleEn,
+      audioUrl: w.audioUrl || null,
+    }));
+
     if (dueIds) {
       const dueSet = new Set(dueIds);
-      const dueCards = cards.filter((c) => dueSet.has(c.id));
+      const dueCards = cards.filter((c: any) => dueSet.has(c.id));
       if (dueCards.length > 0) cards = dueCards;
+    } else {
+      cards = cards.filter((c: any) => c.published !== false);
     }
 
     return NextResponse.json({ cards: cards.slice(0, 15) });

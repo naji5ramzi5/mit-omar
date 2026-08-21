@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, Volume2, RotateCcw, CheckCircle2, XCircle, Brain, ArrowRight, Lock } from 'lucide-react';
+import { Layers, Volume2, RotateCcw, CheckCircle2, XCircle, Brain, ArrowRight, Lock, Loader2 } from 'lucide-react';
 import { useAppStore } from '@/stores/app-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { t } from '@/lib/i18n';
@@ -23,7 +23,12 @@ interface Card {
   wordAr: string;
   wordEn: string;
   exampleDe: string;
+  exampleAr?: string;
+  exampleEn?: string;
+  audioUrl?: string | null;
 }
+
+type AudioState = 'idle' | 'loading' | 'playing' | 'paused';
 
 const GRADES = [
   { grade: 0, label: 'مرة أخرى', labelDe: 'Nochmal', labelEn: 'Again', color: 'text-red-500 border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900/50 hover:border-red-400' },
@@ -31,6 +36,12 @@ const GRADES = [
   { grade: 2, label: 'جيد', labelDe: 'Gut', labelEn: 'Good', color: 'text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-900/50 hover:border-emerald-400' },
   { grade: 3, label: 'سهل', labelDe: 'Leicht', labelEn: 'Easy', color: 'text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-900/50 hover:border-blue-400' },
 ] as const;
+
+const resolveAudio = (url?: string | null) => {
+  if (!url) return '';
+  if (url.startsWith('r2:')) return `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ''}${url.slice(4)}`;
+  return url;
+};
 
 export default function FlashcardsView() {
   const { locale, navigate } = useAppStore();
@@ -44,6 +55,22 @@ export default function FlashcardsView() {
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [audioState, setAudioState] = useState<AudioState>('idle');
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const a = new Audio();
+    a.addEventListener('playing', () => setAudioState('playing'));
+    a.addEventListener('pause', () => setAudioState('paused'));
+    a.addEventListener('ended', () => {
+      setAudioState('idle');
+      a.currentTime = 0;
+    });
+    audioRef.current = a;
+    return () => {
+      a.pause();
+    };
+  }, []);
 
   const ui = locale === 'ar'
     ? {
@@ -129,6 +156,10 @@ export default function FlashcardsView() {
   }, []);
 
   const resetSession = useCallback(() => {
+    audioRef.current?.pause();
+    setAudioState('idle');
+    setSpeaking(false);
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
     setIndex(0);
     setFlipped(false);
     setDone(false);
@@ -143,7 +174,7 @@ export default function FlashcardsView() {
     setCards(data.cards || []);
   };
 
-  const speak = useCallback((word: string) => {
+  const speakTTS = useCallback((word: string) => {
     if (!('speechSynthesis' in window)) return;
     setSpeaking(true);
     const u = new SpeechSynthesisUtterance(word);
@@ -154,7 +185,43 @@ export default function FlashcardsView() {
     window.speechSynthesis.speak(u);
   }, []);
 
+  const playWord = useCallback(() => {
+    const card = cards[index];
+    if (!card) return;
+    if (card.audioUrl && audioRef.current) {
+      const a = audioRef.current;
+      a.src = resolveAudio(card.audioUrl);
+      setAudioState('loading');
+      a.play().catch(() => {
+        setAudioState('idle');
+        speakTTS(card.wordDe);
+      });
+    } else {
+      speakTTS(card.wordDe);
+    }
+  }, [cards, index, speakTTS]);
+
+  const toggleAudio = useCallback(() => {
+    const a = audioRef.current;
+    if (audioState === 'playing') {
+      a?.pause();
+    } else {
+      playWord();
+    }
+  }, [audioState, playWord]);
+
+  const stopAudio = useCallback(() => {
+    audioRef.current?.pause();
+    setAudioState('idle');
+    setSpeaking(false);
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+  }, []);
+
   const gradeCard = async (grade: number) => {
+    audioRef.current?.pause();
+    setAudioState('idle');
+    setSpeaking(false);
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
     setFlipped(false);
     if (isAuthenticated() && !saving) {
       setSaving(true);
@@ -263,11 +330,16 @@ export default function FlashcardsView() {
                     >
                       <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-brand-orange to-brand-red" />
                       <button
-                        onClick={(e) => { e.stopPropagation(); speak(cards[index].wordDe); }}
-                        aria-label="استمع للنطق"
-                        className="w-12 h-12 mx-auto mb-6 rounded-2xl bg-brand-orange/10 flex items-center justify-center text-brand-orange hover:bg-brand-orange hover:text-white transition-all group"
+                        onClick={(e) => { e.stopPropagation(); toggleAudio(); }}
+                        aria-label="استمع لنطق الأستاذ"
+                        className="w-12 h-12 mx-auto mb-6 rounded-full bg-brand-orange/10 flex items-center justify-center text-brand-orange hover:bg-brand-orange hover:text-white transition-all group relative"
                       >
-                        <Volume2 className={`w-5 h-5 ${speaking ? 'animate-pulse' : 'group-hover:scale-110'} transition-transform`} />
+                        <span className={`absolute inset-0 rounded-full border-2 border-brand-orange/40 ${audioState === 'playing' ? 'animate-ping opacity-60' : 'opacity-0'}`} />
+                        {audioState === 'loading' ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <Volume2 className={`w-5 h-5 ${(audioState === 'playing' || speaking) ? 'animate-pulse' : 'group-hover:scale-110'} transition-transform`} />
+                        )}
                       </button>
                       <p className="font-display text-3xl sm:text-4xl font-black text-foreground leading-snug">{cards[index].wordDe}</p>
                       <span className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-muted-foreground">

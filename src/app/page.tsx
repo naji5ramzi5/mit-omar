@@ -10,7 +10,7 @@ import { useAuthStore } from '@/stores/auth-store';
 
 const HomeView = lazy(() => import('@/views/HomeView'));
 const AboutView = lazy(() => import('@/views/AboutView'));
-const CoursesView = lazy(() => import('@/views/CoursesView'));
+const CoursesHubView = lazy(() => import('@/views/CoursesHubView'));
 const CourseDetailView = lazy(() => import('@/views/CourseDetailView'));
 const PostsView = lazy(() => import('@/views/PostsView'));
 const PostDetailView = lazy(() => import('@/views/PostDetailView'));
@@ -110,7 +110,7 @@ export default function AppShell() {
     switch (view) {
       case 'home': return <HomeView />;
       case 'about': return <AboutView />;
-      case 'courses': return <CoursesView />;
+      case 'courses': return <CoursesHubView />;
       case 'course-detail': return <CourseDetailView />;
       case 'posts': return <PostsView />;
       case 'post-detail': return <PostDetailView />;

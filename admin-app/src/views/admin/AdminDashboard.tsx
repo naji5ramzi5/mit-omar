@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, BookOpen, FileText, Image as ImageIcon, GraduationCap, Users, Star, Settings, Mail,
-  LogOut, ExternalLink, ShieldCheck, Menu, X, Bell, Clapperboard, KeyRound, CalendarDays,
+  LogOut, ExternalLink, ShieldCheck, Menu, X, Bell, Clapperboard, KeyRound, CalendarDays, Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/app-store';
@@ -21,9 +21,10 @@ import NotificationSection from './Notifications';
 import Reels from './Reels';
 import Codes from './Codes';
 import Bookings from './Bookings';
+import Flashcards from './Flashcards';
 import type { AdminStats } from './types';
 
-type Section = 'dashboard' | 'courses' | 'posts' | 'banners' | 'reels' | 'quizzes' | 'students' | 'codes' | 'bookings' | 'testimonials' | 'subscribers' | 'notifications' | 'settings';
+type Section = 'dashboard' | 'courses' | 'posts' | 'banners' | 'reels' | 'quizzes' | 'students' | 'codes' | 'bookings' | 'flashcards' | 'testimonials' | 'subscribers' | 'notifications' | 'settings';
 
 const NAV: { key: Section; label: string; icon: any }[] = [
   { key: 'dashboard', label: 'الرئيسية', icon: LayoutDashboard },
@@ -35,6 +36,7 @@ const NAV: { key: Section; label: string; icon: any }[] = [
   { key: 'students', label: 'الطلاب', icon: Users },
   { key: 'codes', label: 'أكواد التفعيل', icon: KeyRound },
   { key: 'bookings', label: 'حجوزات الأونلاين', icon: CalendarDays },
+  { key: 'flashcards', label: 'بطاقات الحفظ', icon: Layers },
   { key: 'testimonials', label: 'آراء الطلاب', icon: Star },
   { key: 'subscribers', label: 'المشتركون', icon: Mail },
   { key: 'notifications', label: 'الإشعارات', icon: Bell },
@@ -184,6 +186,7 @@ export default function AdminDashboard({ user, onLogout }: { user: any; onLogout
                   {active === 'subscribers' && <Subscribers token={token!} />}
                   {active === 'codes' && <Codes token={token!} />}
                   {active === 'bookings' && <Bookings token={token!} />}
+                  {active === 'flashcards' && <Flashcards token={token!} locale={locale} />}
                   {active === 'settings' && <SettingsSection token={token!} user={user} />}
                   {active === 'notifications' && <NotificationSection token={token!} locale={locale} />}
                   {active === 'reels' && <Reels token={token!} locale={locale} />}
