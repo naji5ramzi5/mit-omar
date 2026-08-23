@@ -26,15 +26,15 @@ export default function SectionTitle({ badge, title, subtitle, centered = true, 
     >
       {/* Badge / Eyebrow */}
       {badge && (
-        <div className={`inline-flex items-center gap-2 mb-3.5 ${centered ? 'justify-center' : ''}`}>
-          <span className="h-px w-8 bg-gradient-to-r from-transparent to-brand-orange/50 rounded-full" />
-          <span className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] ${
-            light ? 'text-white/70' : 'text-brand-orange'
+        <div className={`${centered ? 'flex justify-center' : ''} mb-4`}>
+          <span className={`inline-flex items-center gap-2.5 rounded-full px-5 py-2 text-[11px] font-bold uppercase tracking-[0.16em] shadow-sm backdrop-blur-sm ${
+            light
+              ? 'bg-white/10 border border-white/20 text-white/85'
+              : 'bg-gradient-to-r from-brand-orange/[0.09] to-brand-red/[0.09] border border-brand-orange/15 text-brand-orange shadow-brand-orange/5'
           }`}>
-            {Icon && <Icon className="w-3.5 h-3.5" />}
+            {Icon ? <Icon className="w-3.5 h-3.5 opacity-90" /> : <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-br from-brand-orange to-brand-red shadow-sm" />}
             {badge}
           </span>
-          <span className="h-px w-8 bg-gradient-to-l from-transparent to-brand-red/50 rounded-full" />
         </div>
       )}
 
@@ -44,6 +44,7 @@ export default function SectionTitle({ badge, title, subtitle, centered = true, 
       } text-2xl sm:text-3xl lg:text-4xl`}>
         {title}
       </h2>
+      <div className={`h-1 w-10 rounded-full bg-gradient-to-r from-brand-orange to-brand-red/30 ${centered ? 'mx-auto' : ''} mb-3`} />
 
       {/* Subtitle */}
       {subtitle && (

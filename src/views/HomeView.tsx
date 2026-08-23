@@ -121,55 +121,56 @@ export default function HomeView() {
   return (
     <div>
       {/* ============ HERO ============ */}
-      <section className="relative overflow-hidden min-h-[420px] md:h-[52vh] md:min-h-[440px] lg:h-[54vh] lg:min-h-[460px] lg:max-h-[560px]">
-        <AnimatePresence mode="wait">
-          <motion.div key={currentSlide} initial={{ opacity: 0, scale: 1.06 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 1.2, ease: 'easeOut' }} className="absolute inset-0">
-            <Image src={currentImage} alt="" fill sizes="100vw" priority className="object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/30 to-transparent" />
-          </motion.div>
-        </AnimatePresence>
+      <div className="pt-20 pb-6">
+        <div className="container-bold">
+          <div className="relative overflow-hidden rounded-[2rem] lg:rounded-[2.5rem] min-h-[420px] md:h-[52vh] md:min-h-[440px] lg:h-[54vh] lg:min-h-[460px] lg:max-h-[560px] shadow-[0_16px_40px_-16px_rgba(0,0,0,0.3)] ring-1 ring-black/5">
+            <AnimatePresence mode="wait">
+              <motion.div key={currentSlide} initial={{ opacity: 0, scale: 1.06 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 1.2, ease: 'easeOut' }} className="absolute inset-0">
+                <Image src={currentImage} alt="" fill sizes="100vw" priority className="object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/30 to-transparent" />
+              </motion.div>
+            </AnimatePresence>
 
-        {/* Content */}
-        <div className="relative z-10 h-full flex items-center pb-10 pt-24">
-          <div className="container-bold w-full">
-            <div className="flex items-center justify-between gap-10">
-              <div className="max-w-2xl w-full">
+            {/* Content */}
+            <div className="relative z-10 h-full flex flex-col justify-center pb-10 pt-12">
+              <div className="w-full px-6 sm:px-8 lg:px-12 max-w-3xl">
                 <AnimatePresence mode="wait">
                   <motion.div key={currentSlide} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}>
-                    <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-6 border border-white/20 backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                      <span className="w-1.5 h-1.5 bg-brand-orange rounded-full" />
-                      <span className="text-white text-[11px] font-semibold tracking-[0.12em] uppercase" style={{ opacity: 0.85 }}>{slideLabel}</span>
+                    <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-3 border border-white/15 bg-white/10 backdrop-blur-md shadow-sm">
+                      <span className="w-1.5 h-1.5 rounded-full bg-brand-orange shadow-[0_0_8px_rgba(232,93,38,0.6)]" />
+                      <span className="text-white text-[10px] font-bold tracking-[0.14em] uppercase">{slideLabel}</span>
                     </div>
-
-                    <h1 className="font-display text-white font-black leading-[1.12] tracking-tight mb-3 text-balance" style={{ fontSize: 'clamp(1.6rem, 3.6vw, 2.7rem)' }}>
+                    <h1 className="font-display text-white font-[800] leading-[1.04] tracking-[-0.02em] mb-2.5 text-balance drop-shadow-[0_4px_24px_rgba(0,0,0,0.4)]" style={{ fontSize: 'clamp(1.95rem, 4.2vw, 3.25rem)', textShadow: '0 2px 24px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.4)' }}>
                       {slideTitle}
                     </h1>
 
-                    <p className="leading-relaxed mb-5 max-w-xl text-sm sm:text-base" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                    <p className="leading-relaxed mb-4 max-w-[560px] text-[15px]" style={{ color: 'rgba(255,255,255,0.72)' }}>
                       {slideDesc}
                     </p>
 
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3 mb-5">
                       <button onClick={() => navigate('courses')} className="group inline-flex items-center gap-2 px-6 py-3 text-sm font-bold tracking-wide text-white rounded-xl shadow-lg shadow-brand-orange/25 hover:shadow-brand-orange/40 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200" style={{ background: 'linear-gradient(135deg, #E85D26, #DC3545)' }}>
                         {t(locale, 'hero_cta_primary')}
                         <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                       </button>
-                      <button onClick={() => navigate('online_booking')} className="group inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold tracking-wide text-white rounded-xl border border-white/25 backdrop-blur-md hover:bg-white/15 transition-all duration-200" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                      <button onClick={() => navigate('online_booking')} className="group inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold tracking-wide text-white rounded-xl border border-white/15 bg-white/10 backdrop-blur-xl hover:bg-white/15 transition-all duration-200">
                         <CalendarIcon className="w-4 h-4" />
                         {t(locale, 'nav_online_booking')}
                       </button>
                     </div>
 
-                    <div className="flex items-center gap-6 mt-6 pt-5 border-t border-white/10">
+                    <div className="inline-flex items-center rounded-2xl bg-white/[0.07] backdrop-blur-xl border border-white/10 overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
                       {[
                         { v: `${stats.students}+`, l: t(locale, 'stats_students') },
                         { v: `${stats.years}+`, l: t(locale, 'stats_years') },
                         { v: `${stats.courses}+`, l: t(locale, 'stats_courses') },
-                      ].map((s, i) => (
-                        <div key={i} className="text-center">
-                          <p className="font-display text-xl font-extrabold text-white number-display">{s.v}</p>
-                          <p className="text-[11px] font-medium tracking-wide mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>{s.l}</p>
+                      ].map((s, i, arr) => (
+                        <div key={i} className={`flex items-center gap-3 px-4 sm:px-5 py-3 ${i !== arr.length - 1 ? 'border-e border-white/10' : ''}`}>
+                          <div>
+                            <p className="font-display text-[17px] font-extrabold leading-none text-white number-display">{s.v}</p>
+                            <p className="text-[10px] font-semibold tracking-wide mt-1" style={{ color: 'rgba(255,255,255,0.55)' }}>{s.l}</p>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -177,38 +178,37 @@ export default function HomeView() {
                 </AnimatePresence>
               </div>
 
+              {/* Carousel controls */}
+              <div className="flex items-center gap-3 mt-5 px-6 sm:px-8 lg:px-12">
+                <button onClick={prevSlide} aria-label="السابق" className="w-10 h-10 rounded-full border border-white/15 bg-white/10 backdrop-blur-xl flex items-center justify-center text-white hover:bg-white/15 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg">
+                  <BackArrow className="w-4 h-4" />
+                </button>
+                <div className="flex items-center gap-2 rounded-full px-3 py-2 bg-black/20 backdrop-blur-xl border border-white/10">
+                  {Array.from({ length: slideCount }).map((_, i) => (
+                    <button key={i} onClick={() => setCurrentSlide(i)} onMouseEnter={() => setIsAutoPlaying(false)} onMouseLeave={() => setIsAutoPlaying(true)}
+                      aria-label={`Slide ${i + 1}`}
+                      className="h-1.5 rounded-full transition-all duration-300"
+                      style={{ width: i === currentSlide ? '28px' : '8px', background: i === currentSlide ? 'linear-gradient(90deg, #E85D26, #DC3545)' : 'rgba(255,255,255,0.35)' }} />
+                  ))}
+                </div>
+                <button onClick={nextSlide} aria-label="التالي" className="w-10 h-10 rounded-full border border-white/15 bg-white/10 backdrop-blur-xl flex items-center justify-center text-white hover:bg-white/15 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg">
+                  <FwdArrow className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
-            {/* Carousel controls */}
-            <div className="flex items-center gap-4 mt-7">
-              <button onClick={prevSlide} aria-label="السابق" className="w-10 h-10 rounded-xl border border-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/15 transition-all duration-200" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                <BackArrow className="w-4 h-4" />
-              </button>
-              <div className="flex items-center gap-2">
-                {Array.from({ length: slideCount }).map((_, i) => (
-                  <button key={i} onClick={() => setCurrentSlide(i)} onMouseEnter={() => setIsAutoPlaying(false)} onMouseLeave={() => setIsAutoPlaying(true)}
-                    aria-label={`Slide ${i + 1}`}
-                    className="h-1.5 rounded-full transition-all duration-300"
-                    style={{ width: i === currentSlide ? '32px' : '10px', background: i === currentSlide ? 'linear-gradient(90deg, #E85D26, #DC3545)' : 'rgba(255,255,255,0.3)' }} />
-                ))}
-              </div>
-              <button onClick={nextSlide} aria-label="التالي" className="w-10 h-10 rounded-xl border border-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/15 transition-all duration-200" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                <FwdArrow className="w-4 h-4" />
-              </button>
+            {/* Scroll hint */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 hidden md:block">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.6 }} className="flex flex-col items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-[0.2em]" style={{ color: 'rgba(255,255,255,0.35)' }}>{t(locale, 'nav_courses')}</span>
+                <div className="w-5 h-9 rounded-full border border-white/20 flex items-start justify-center p-1.5">
+                  <motion.div animate={{ y: [0, 14, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }} className="w-1 h-2.5 rounded-full" style={{ background: '#E85D26' }} />
+                </div>
+              </motion.div>
             </div>
           </div>
         </div>
-
-        {/* Scroll hint */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 hidden md:block">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.6 }} className="flex flex-col items-center gap-1.5">
-            <span className="text-[10px] uppercase tracking-[0.2em]" style={{ color: 'rgba(255,255,255,0.35)' }}>{t(locale, 'nav_courses')}</span>
-            <div className="w-5 h-9 rounded-full border border-white/20 flex items-start justify-center p-1.5">
-              <motion.div animate={{ y: [0, 14, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }} className="w-1 h-2.5 rounded-full" style={{ background: '#E85D26' }} />
-            </div>
-          </motion.div>
-        </div>
-      </section>
+      </div>
 
       {/* ============ VALUE BAND ============ */}
       <section className="py-12">
