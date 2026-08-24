@@ -121,9 +121,9 @@ export default function HomeView() {
   return (
     <div>
       {/* ============ HERO ============ */}
-      <div className="pt-20 pb-6">
+      <div className="pt-[64px] pb-4">
         <div className="container-bold">
-          <div className="relative overflow-hidden rounded-[2rem] lg:rounded-[2.5rem] min-h-[420px] md:h-[52vh] md:min-h-[440px] lg:h-[54vh] lg:min-h-[460px] lg:max-h-[560px] shadow-[0_16px_40px_-16px_rgba(0,0,0,0.3)] ring-1 ring-black/5">
+          <div className="relative overflow-hidden rounded-2xl min-h-[340px] md:min-h-[360px] lg:min-h-[380px] lg:max-h-[440px] shadow-md ring-1 ring-black/5">
             <AnimatePresence mode="wait">
               <motion.div key={currentSlide} initial={{ opacity: 0, scale: 1.06 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 1.2, ease: 'easeOut' }} className="absolute inset-0">
                 <Image src={currentImage} alt="" fill sizes="100vw" priority className="object-cover" />
@@ -133,43 +133,43 @@ export default function HomeView() {
             </AnimatePresence>
 
             {/* Content */}
-            <div className="relative z-10 h-full flex flex-col justify-center pb-10 pt-12">
-              <div className="w-full px-6 sm:px-8 lg:px-12 max-w-3xl">
+            <div className="relative z-10 h-full flex flex-col justify-center pb-8 pt-8">
+              <div className="w-full px-4 sm:px-6 lg:px-8 max-w-2xl">
                 <AnimatePresence mode="wait">
                   <motion.div key={currentSlide} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}>
                     <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-3 border border-white/15 bg-white/10 backdrop-blur-md shadow-sm">
                       <span className="w-1.5 h-1.5 rounded-full bg-brand-orange shadow-[0_0_8px_rgba(232,93,38,0.6)]" />
                       <span className="text-white text-[10px] font-bold tracking-[0.14em] uppercase">{slideLabel}</span>
                     </div>
-                    <h1 className="font-display text-white font-[800] leading-[1.04] tracking-[-0.02em] mb-2.5 text-balance drop-shadow-[0_4px_24px_rgba(0,0,0,0.4)]" style={{ fontSize: 'clamp(1.95rem, 4.2vw, 3.25rem)', textShadow: '0 2px 24px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.4)' }}>
+                    <h1 className="font-display text-white font-[800] leading-[1.05] tracking-[-0.02em] mb-2 text-balance drop-shadow-[0_4px_16px_rgba(0,0,0,0.4)]" style={{ fontSize: 'clamp(1.65rem, 3.8vw, 2.6rem)', textShadow: '0 2px 16px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.4)' }}>
                       {slideTitle}
                     </h1>
 
-                    <p className="leading-relaxed mb-4 max-w-[560px] text-[15px]" style={{ color: 'rgba(255,255,255,0.72)' }}>
+                    <p className="leading-relaxed mb-3 max-w-[520px] text-sm" style={{ color: 'rgba(255,255,255,0.72)' }}>
                       {slideDesc}
                     </p>
 
-                    <div className="flex flex-wrap items-center gap-3 mb-5">
-                      <button onClick={() => navigate('courses')} className="group inline-flex items-center gap-2 px-6 py-3 text-sm font-bold tracking-wide text-white rounded-xl shadow-lg shadow-brand-orange/25 hover:shadow-brand-orange/40 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200" style={{ background: 'linear-gradient(135deg, #E85D26, #DC3545)' }}>
+                    <div className="flex flex-wrap items-center gap-2.5 mb-4">
+                      <button onClick={() => navigate('courses')} className="group inline-flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold tracking-wide text-white rounded-xl shadow-md shadow-brand-orange/20 hover:shadow-brand-orange/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200" style={{ background: 'linear-gradient(135deg, #E85D26, #DC3545)' }}>
                         {t(locale, 'hero_cta_primary')}
-                        <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                        <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                       </button>
-                      <button onClick={() => navigate('online_booking')} className="group inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold tracking-wide text-white rounded-xl border border-white/15 bg-white/10 backdrop-blur-xl hover:bg-white/15 transition-all duration-200">
-                        <CalendarIcon className="w-4 h-4" />
+                      <button onClick={() => navigate('online_booking')} className="group inline-flex items-center gap-2 px-4 py-2.5 text-[13px] font-semibold tracking-wide text-white rounded-xl border border-white/15 bg-white/10 backdrop-blur-xl hover:bg-white/15 transition-all duration-200">
+                        <CalendarIcon className="w-3.5 h-3.5" />
                         {t(locale, 'nav_online_booking')}
                       </button>
                     </div>
 
-                    <div className="inline-flex items-center rounded-2xl bg-white/[0.07] backdrop-blur-xl border border-white/10 overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
+                    <div className="inline-flex items-center rounded-xl bg-white/[0.07] backdrop-blur-xl border border-white/10 overflow-hidden shadow-sm">
                       {[
                         { v: `${stats.students}+`, l: t(locale, 'stats_students') },
                         { v: `${stats.years}+`, l: t(locale, 'stats_years') },
                         { v: `${stats.courses}+`, l: t(locale, 'stats_courses') },
                       ].map((s, i, arr) => (
-                        <div key={i} className={`flex items-center gap-3 px-4 sm:px-5 py-3 ${i !== arr.length - 1 ? 'border-e border-white/10' : ''}`}>
+                        <div key={i} className={`flex items-center gap-2.5 px-3.5 sm:px-4 py-2.5 ${i !== arr.length - 1 ? 'border-e border-white/10' : ''}`}>
                           <div>
-                            <p className="font-display text-[17px] font-extrabold leading-none text-white number-display">{s.v}</p>
-                            <p className="text-[10px] font-semibold tracking-wide mt-1" style={{ color: 'rgba(255,255,255,0.55)' }}>{s.l}</p>
+                            <p className="font-display text-[15px] font-extrabold leading-none text-white number-display">{s.v}</p>
+                            <p className="text-[10px] font-semibold tracking-wide mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>{s.l}</p>
                           </div>
                         </div>
                       ))}
@@ -179,7 +179,7 @@ export default function HomeView() {
               </div>
 
               {/* Carousel controls */}
-              <div className="flex items-center gap-3 mt-5 px-6 sm:px-8 lg:px-12">
+              <div className="flex items-center gap-2.5 mt-4 px-4 sm:px-6 lg:px-8">
                 <button onClick={prevSlide} aria-label="السابق" className="w-10 h-10 rounded-full border border-white/15 bg-white/10 backdrop-blur-xl flex items-center justify-center text-white hover:bg-white/15 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg">
                   <BackArrow className="w-4 h-4" />
                 </button>
@@ -211,30 +211,30 @@ export default function HomeView() {
       </div>
 
       {/* ============ VALUE BAND ============ */}
-      <section className="py-12">
+      <section className="py-10 md:py-12">
         <div className="container-bold">
-          <div className="relative overflow-hidden rounded-[2rem] lg:rounded-[2.5rem] bg-brand-warm dark:bg-accent px-6 sm:px-10 lg:px-14 py-12 lg:py-16">
+          <div className="relative overflow-hidden rounded-2xl bg-brand-warm dark:bg-accent px-5 sm:px-8 lg:px-10 py-8 lg:py-10">
             {/* Soft organic brand shapes */}
             <div className="absolute -top-24 -start-16 w-72 h-72 rounded-full bg-brand-orange/10 blur-3xl pointer-events-none" />
             <div className="absolute -bottom-24 -end-10 w-72 h-72 rounded-full bg-brand-red/10 blur-3xl pointer-events-none" />
-            <div className="relative grid lg:grid-cols-[0.9fr_1.1fr] gap-10 lg:gap-14 items-center">
+            <div className="relative grid lg:grid-cols-[0.9fr_1.1fr] gap-8 lg:gap-10 items-center">
               <div>
-                <span className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-5 border border-brand-orange/25 bg-brand-orange/5">
-                  <span className="w-1.5 h-1.5 bg-brand-orange rounded-full" />
-                  <span className="text-brand-orange text-[11px] font-bold tracking-wide uppercase">{t(locale, 'home_why_omar')}</span>
+                <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 mb-4 border border-brand-orange/20 bg-brand-orange/5">
+                  <span className="w-1 h-1 bg-brand-orange rounded-full" />
+                  <span className="text-brand-orange text-[10px] font-bold tracking-wide uppercase">{t(locale, 'home_why_omar')}</span>
                 </span>
-                <h2 className="font-display text-2xl sm:text-3xl lg:text-[2.1rem] font-black text-foreground leading-tight mb-3 text-balance">
+                <h2 className="font-display text-xl sm:text-2xl lg:text-[1.7rem] font-black text-foreground leading-tight mb-2.5 text-balance">
                   {t(locale, 'home_features_lead')}
                 </h2>
-                <p className="text-muted-foreground leading-relaxed text-sm max-w-md">{t(locale, 'home_features_lead_desc')}</p>
+                <p className="text-muted-foreground leading-relaxed text-[13px] max-w-md">{t(locale, 'home_features_lead_desc')}</p>
               </div>
-              <div className="grid sm:grid-cols-2 gap-x-8 gap-y-7">
+              <div className="grid sm:grid-cols-2 gap-x-6 gap-y-5">
                 {features.map((f, i) => (
-                  <motion.div key={i} {...fade(i * 0.06)} className="flex items-start gap-3.5">
-                    <f.icon className={`w-5 h-5 mt-0.5 shrink-0 ${f.color}`} />
+                  <motion.div key={i} {...fade(i * 0.06)} className="flex items-start gap-2.5">
+                    <f.icon className={`w-4 h-4 mt-0.5 shrink-0 ${f.color}`} />
                     <div className="min-w-0">
-                      <p className="font-display font-bold text-[15px] text-foreground leading-tight">{t(locale, f.titleKey as any)}</p>
-                      <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{t(locale, f.descKey as any)}</p>
+                      <p className="font-display font-bold text-[13px] text-foreground leading-tight">{t(locale, f.titleKey as any)}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t(locale, f.descKey as any)}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -245,20 +245,20 @@ export default function HomeView() {
       </section>
 
       {/* ============ WHY OMAR ============ */}
-      <section className="py-16 lg:py-20 bg-brand-warm dark:bg-accent relative overflow-hidden">
+      <section className="py-10 md:py-14 bg-brand-warm dark:bg-accent relative overflow-hidden">
         <div className="container-bold">
           <motion.div {...fade(0)}>
             <SectionTitle badge={t(locale, 'home_why_omar')} title={t(locale, 'home_why_omar')} subtitle={t(locale, 'home_why_subtitle')} />
           </motion.div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {whyOmar.map((item, i) => (
               <motion.div key={i} {...fade(i * 0.07)}>
-                <div className="group h-full p-6 rounded-2xl border border-border/70 bg-card hover:border-brand-orange/30 hover:-translate-y-1 transition-all duration-300">
-                  <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-4 shadow-md shadow-black/5 group-hover:scale-105 transition-transform duration-300`}>
-                    <item.icon className="w-5 h-5 text-white" />
+                <div className="group h-full p-4 md:p-5 rounded-2xl border border-border/60 bg-card hover:border-brand-orange/30 hover:-translate-y-0.5 transition-all duration-300 shadow-sm">
+                  <div className={`w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-3 shadow-sm group-hover:scale-105 transition-transform duration-300`}>
+                    <item.icon className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   </div>
-                  <h3 className="font-display font-bold text-foreground mb-1.5 text-[15px]">{t(locale, item.titleKey as any)}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{t(locale, item.descKey as any)}</p>
+                  <h3 className="font-display font-bold text-foreground mb-1 text-sm">{t(locale, item.titleKey as any)}</h3>
+                  <p className="text-[13px] text-muted-foreground leading-relaxed">{t(locale, item.descKey as any)}</p>
                 </div>
               </motion.div>
             ))}
@@ -267,49 +267,49 @@ export default function HomeView() {
       </section>
 
       {/* ============ TEACHER ============ */}
-      <section className="py-16 lg:py-24 bg-card relative overflow-hidden">
+      <section className="py-10 md:py-14 bg-card relative overflow-hidden">
         <div className="container-bold">
-          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-            <motion.div {...fade(0)} className="relative">
-              <div className="relative rounded-3xl overflow-hidden shadow-[0_24px_60px_-12px_rgba(0,0,0,0.25)] ring-1 ring-border bg-brand-warm dark:bg-accent">
-                <div className="aspect-[4/5] sm:aspect-[5/6] w-full">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <motion.div {...fade(0)} className="relative max-w-[420px] mx-auto lg:mx-0 w-full">
+              <div className="relative rounded-2xl overflow-hidden shadow-md ring-1 ring-border bg-brand-warm dark:bg-accent">
+                <div className="aspect-[4/5] w-full">
                   <Image src="/images/teacher/omar-hero.png" alt="Omar — الأستاذ عمر" fill sizes="(max-width:1024px) 100vw, 45vw" className="object-cover object-top" priority />
                 </div>
-                <div className="absolute bottom-0 inset-x-0 h-28 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-black/55 via-black/15 to-transparent" />
               </div>
-              <div className="absolute -bottom-4 start-6 px-4 py-3 rounded-xl bg-card border border-border shadow-card">
+              <div className="absolute -bottom-3 start-4 sm:start-6 px-3 py-2.5 rounded-xl bg-card border border-border shadow-md">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center">
-                    <Award className="w-4 h-4 text-white" />
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center">
+                    <Award className="w-3.5 h-3.5 text-white" />
                   </div>
                   <div>
-                    <p className="font-display text-base font-extrabold text-gradient leading-none">{t(locale, 'home_teacher_years')}</p>
-                    <p className="text-[10px] text-muted-foreground font-semibold mt-1">{t(locale, 'home_teacher_years_sub')}</p>
+                    <p className="font-display text-sm font-extrabold text-gradient leading-none">{t(locale, 'home_teacher_years')}</p>
+                    <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">{t(locale, 'home_teacher_years_sub')}</p>
                   </div>
                 </div>
               </div>
             </motion.div>
 
             <motion.div {...fade(0.1)}>
-              <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-5 border border-brand-orange/25 bg-brand-orange/5">
-                <span className="w-1.5 h-1.5 bg-brand-orange rounded-full" />
-                <span className="text-brand-orange text-[11px] font-bold tracking-wide uppercase">{t(locale, 'home_teacher_badge')}</span>
+              <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 mb-4 border border-brand-orange/20 bg-brand-orange/5">
+                <span className="w-1 h-1 bg-brand-orange rounded-full" />
+                <span className="text-brand-orange text-[10px] font-bold tracking-wide uppercase">{t(locale, 'home_teacher_badge')}</span>
               </div>
-              <h2 className="font-display text-3xl sm:text-4xl font-black text-foreground leading-tight mb-4 text-balance">
+              <h2 className="font-display text-2xl sm:text-3xl font-black text-foreground leading-tight mb-3 text-balance">
                 {t(locale, 'home_teacher_title_1')} <span className="text-gradient">{t(locale, 'home_teacher_title_2')}</span>
               </h2>
-              <p className="text-muted-foreground leading-relaxed text-base mb-7">
+              <p className="text-muted-foreground leading-relaxed text-sm mb-6">
                 {t(locale, 'home_teacher_desc')}
               </p>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-7">
+              <div className="grid grid-cols-2 gap-3 mb-6">
                 {[{ icon: GraduationCap, title: t(locale, 'home_teacher_stat_1'), count: t(locale, 'home_teacher_stat_3') }, { icon: Target, title: t(locale, 'home_teacher_stat_2') }, { icon: Users, title: t(locale, 'home_teacher_stat_3') }, { icon: BookOpen, title: t(locale, 'home_teacher_stat_4') }].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3 pb-3 border-b border-border/70 last:border-0">
-                    <div className="w-9 h-9 rounded-lg bg-brand-orange/10 flex items-center justify-center shrink-0">
-                      <item.icon className="w-4 h-4 text-brand-orange" />
+                  <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/60 bg-card">
+                    <div className="w-8 h-8 rounded-lg bg-brand-orange/10 flex items-center justify-center shrink-0">
+                      <item.icon className="w-3.5 h-3.5 text-brand-orange" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-display text-sm font-bold text-foreground leading-tight">{item.title}</h3>
-                      <p className="text-xs text-muted-foreground">{item.count}</p>
+                      <h3 className="font-display text-[13px] font-bold text-foreground leading-tight">{item.title}</h3>
+                      <p className="text-[11px] text-muted-foreground">{item.count}</p>
                     </div>
                   </div>
                 ))}
@@ -324,24 +324,24 @@ export default function HomeView() {
       </section>
 
       {/* ============ STATS ============ */}
-      <section className="py-12 bg-card border-y border-border/60 dark:border-border" ref={setCountersRef}>
+      <section className="py-8 md:py-10 bg-card border-y border-border/60 dark:border-border" ref={setCountersRef}>
         <div className="container-bold">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {[
               { count: yearsCount.count, label: t(locale, 'stats_years'), icon: Award },
               { count: coursesCount.count, label: t(locale, 'stats_courses'), icon: BookOpen },
               { count: lessonsCount.count, label: t(locale, 'stats_lessons'), icon: Clock },
               { count: studentsCount.count, label: t(locale, 'stats_students'), icon: Users },
             ].map((item, i) => (
-              <motion.div key={i} {...fade(i * 0.06)} className="flex items-center gap-4">
-                <div className="w-11 h-11 shrink-0 rounded-xl bg-brand-orange/8 flex items-center justify-center">
-                  <item.icon className="w-5 h-5 text-brand-orange" />
+              <motion.div key={i} {...fade(i * 0.06)} className="flex items-center gap-3">
+                <div className="w-9 h-9 shrink-0 rounded-xl bg-brand-orange/8 flex items-center justify-center">
+                  <item.icon className="w-4 h-4 text-brand-orange" />
                 </div>
                 <div>
-                  <div className="font-display text-2xl md:text-3xl font-extrabold text-foreground tracking-tight leading-none number-display">
+                  <div className="font-display text-xl md:text-2xl font-extrabold text-foreground tracking-tight leading-none number-display">
                     {item.count}<span className="text-gradient">+</span>
                   </div>
-                  <p className="text-[11px] font-semibold tracking-wider text-muted-foreground mt-1">{item.label}</p>
+                  <p className="text-[10px] font-semibold tracking-wider text-muted-foreground mt-0.5">{item.label}</p>
                 </div>
               </motion.div>
             ))}
@@ -350,24 +350,24 @@ export default function HomeView() {
       </section>
 
       {/* ============ LEVELS ============ */}
-      <section className="py-16 lg:py-20 bg-brand-warm dark:bg-accent relative overflow-hidden">
+      <section className="py-10 md:py-14 bg-brand-warm dark:bg-accent relative overflow-hidden">
         <div className="container-bold">
           <motion.div {...fade(0)}>
             <SectionTitle badge={t(locale, 'home_levels_badge')} title={t(locale, 'home_levels_title')} subtitle={t(locale, 'home_levels_subtitle')} />
           </motion.div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             {LEVELS.map((level, i) => (
               <motion.button key={level} {...fade(i * 0.06)}
                 onClick={() => navigate('courses')}
-                className="group relative p-5 rounded-xl border border-border/70 bg-card hover:border-brand-orange/40 hover:-translate-y-1 transition-all duration-300 text-center overflow-hidden">
-                <span className="font-display text-4xl font-black absolute -top-0.5 -end-0.5 opacity-[0.06] text-foreground">{level}</span>
+                className="group relative p-4 rounded-2xl border border-border/60 bg-card hover:border-brand-orange/30 hover:-translate-y-0.5 transition-all duration-300 text-center overflow-hidden shadow-sm">
+                <span className="font-display text-3xl font-black absolute -top-0.5 -end-0.5 opacity-[0.05] text-foreground">{level}</span>
                 <div className="relative z-10">
-                  <div className="w-11 h-11 mx-auto mb-3 rounded-lg bg-gradient-to-br from-brand-orange/10 to-brand-red/10 flex items-center justify-center group-hover:from-brand-orange group-hover:to-brand-red transition-all duration-300">
-                    <span className="font-display text-base font-extrabold text-brand-orange group-hover:text-white transition-colors duration-300">{level}</span>
+                  <div className="w-9 h-9 mx-auto mb-2.5 rounded-xl bg-gradient-to-br from-brand-orange/10 to-brand-red/10 flex items-center justify-center group-hover:from-brand-orange group-hover:to-brand-red transition-all duration-300">
+                    <span className="font-display text-sm font-extrabold text-brand-orange group-hover:text-white transition-colors duration-300">{level}</span>
                   </div>
-                  <div className="flex items-center justify-center gap-1 text-[11px] font-semibold text-muted-foreground group-hover:text-brand-orange transition-colors duration-200">
+                  <div className="flex items-center justify-center gap-1 text-[10px] font-semibold text-muted-foreground group-hover:text-brand-orange transition-colors duration-200">
                     <span>{t(locale, 'courses_view_details')}</span>
-                    <Play className="w-3 h-3" />
+                    <Play className="w-2.5 h-2.5" />
                   </div>
                 </div>
               </motion.button>
@@ -378,12 +378,12 @@ export default function HomeView() {
 
       {/* ============ EDUCATIONAL VIDEOS ============ */}
       {reels.length > 0 && (
-        <section className="py-16 lg:py-20 bg-brand-warm dark:bg-accent relative overflow-hidden">
+        <section className="py-10 md:py-14 bg-brand-warm dark:bg-accent relative overflow-hidden">
           <div className="container-bold">
             <motion.div {...fade(0)}>
               <SectionTitle badge={t(locale, 'reels_title')} title={t(locale, 'reels_title')} subtitle={t(locale, 'reels_subtitle')} />
             </motion.div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-4xl mx-auto">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto">
               {reels.slice(0, 3).map((reel, i) => (
                 <motion.button key={reel.id} {...fade(i * 0.07)}
                   onClick={() => setActiveReel(reel)}
@@ -447,15 +447,15 @@ export default function HomeView() {
 
       {/* ============ TESTIMONIALS ============ */}
       {testimonials.length > 0 && (
-        <section className="py-16 lg:py-20 bg-white dark:bg-card relative overflow-hidden">
+        <section className="py-10 md:py-14 bg-white dark:bg-card relative overflow-hidden">
           <div className="container-bold">
             <motion.div {...fade(0)}>
               <SectionTitle badge={t(locale, 'testimonials_title')} title={t(locale, 'testimonials_title')} subtitle={t(locale, 'testimonials_subtitle')} />
             </motion.div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {testimonials.slice(0, 3).map((testimonial, i) => (
                 <motion.div key={testimonial.id} {...fade(i * 0.07)}>
-                  <div className="p-6 h-full rounded-2xl border border-border/70 bg-card hover:border-brand-orange/25 transition-colors duration-300">
+                  <div className="p-4 md:p-5 h-full rounded-2xl border border-border/60 bg-card hover:border-brand-orange/25 transition-colors duration-300 shadow-sm">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center text-white text-base font-bold shrink-0">
                         {getTestimonialField(testimonial as unknown as Record<string, unknown>, 'name').charAt(0)}
@@ -482,7 +482,7 @@ export default function HomeView() {
 
       {/* ============ BLOG / POSTS ============ */}
       {posts.length > 0 && (
-        <section className="py-16 lg:py-20 bg-brand-warm dark:bg-accent relative overflow-hidden">
+        <section className="py-10 md:py-14 bg-brand-warm dark:bg-accent relative overflow-hidden">
           <div className="container-bold">
             <motion.div {...fade(0)}>
               <div className="flex items-end justify-between gap-4">
@@ -492,18 +492,18 @@ export default function HomeView() {
                 </button>
               </div>
             </motion.div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {posts.slice(0, 3).map((post, i) => (
                 <motion.div key={post.id} {...fade(i * 0.07)}>
                   <div onClick={() => navigate('post-detail', { id: post.id })} className="group cursor-pointer">
-                    <div className="overflow-hidden rounded-xl border border-border/70 bg-card hover:border-brand-orange/30 hover:-translate-y-1 transition-all duration-300">
-                      <div className="relative aspect-[16/10] overflow-hidden">
+                    <div className="overflow-hidden rounded-2xl border border-border/60 bg-card hover:border-brand-orange/30 hover:-translate-y-0.5 transition-all duration-300 shadow-sm">
+                      <div className="relative aspect-[16/9] overflow-hidden">
                         <Image src={post.imageUrl || '/images/berlin/brandenburg-gate.png'} alt={getPostField(post as unknown as Record<string, unknown>, 'title')} fill sizes="(max-width:1024px) 100vw, 33vw" className="object-cover group-hover:scale-[1.04] transition-transform duration-500" />
                         {post.category && <span className="absolute top-3 start-3 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-brand-orange text-white rounded-md">{post.category}</span>}
                       </div>
-                      <div className="p-5">
-                        <h3 className="font-display font-bold text-foreground mb-1.5 line-clamp-2 group-hover:text-brand-orange transition-colors text-[15px] leading-snug">{getPostField(post as unknown as Record<string, unknown>, 'title')}</h3>
-                        <p className="text-[13px] text-muted-foreground line-clamp-2 mb-3 leading-relaxed">{getPostField(post as unknown as Record<string, unknown>, 'excerpt')}</p>
+                      <div className="p-4">
+                        <h3 className="font-display font-bold text-foreground mb-1 line-clamp-2 group-hover:text-brand-orange transition-colors text-sm leading-snug">{getPostField(post as unknown as Record<string, unknown>, 'title')}</h3>
+                        <p className="text-[12px] text-muted-foreground line-clamp-2 mb-3 leading-relaxed">{getPostField(post as unknown as Record<string, unknown>, 'excerpt')}</p>
                         <div className="flex items-center justify-between">
                           <span className="text-[11px] text-muted-foreground font-medium">{new Date(post.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'de' ? 'de-DE' : 'en-US')}</span>
                           <span className="text-[11px] font-bold text-brand-orange flex items-center gap-1 group-hover:gap-1.5 transition-all">{t(locale, 'home_read_more')} <ArrowUpRight className="w-3 h-3" /></span>
@@ -519,10 +519,10 @@ export default function HomeView() {
       )}
 
       {/* ============ FINAL CTA ============ */}
-      <section className="py-14">
+      <section className="py-10 md:py-14">
         <div className="container-bold">
           <motion.div {...fade(0)}>
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-dark via-[#1a1008] to-[#0f0f0f] px-6 py-10 sm:p-12 lg:p-14 text-center">
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-dark via-[#1a1008] to-[#0f0f0f] px-6 py-10 sm:p-10 lg:p-12 text-center shadow-md">
               <img
                 src="/images/berlin/brandenburg-gate.png"
                 alt=""
