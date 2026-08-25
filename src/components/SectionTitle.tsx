@@ -22,7 +22,7 @@ export default function SectionTitle({ badge, title, subtitle, centered = true, 
       initial={{ opacity: 0, y: 16 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-      className={`${centered ? 'text-center' : ''} mb-8 sm:mb-10`}
+      className={`${centered ? 'text-center' : ''} mb-2`}
     >
       {/* Badge / Eyebrow */}
       {badge && (

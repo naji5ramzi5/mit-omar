@@ -4,7 +4,6 @@ import { useEffect, lazy, Suspense } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import FloatingContact from '@/components/FloatingContact';
 import { useAppStore } from '@/stores/app-store';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -153,7 +152,6 @@ export default function AppShell() {
         </Suspense>
       </main>
       {!isFullPage && <Footer />}
-      {!isFullPage && <FloatingContact />}
     </div>
   );
 }

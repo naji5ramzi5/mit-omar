@@ -54,14 +54,14 @@ export default function Header() {
           <Image
             src="/images/logo-official.png"
             alt="Deutsch mit Omar"
-            width={44}
-            height={44}
-            className={`object-contain rounded-xl transition-all duration-300 ${
+            width={64}
+            height={64}
+            className={`object-contain rounded-xl h-12 md:h-16 w-auto transition-all duration-300 ${
               isTransparent ? 'brightness-0 invert' : ''
             } group-hover:scale-105`}
             priority
           />
-          <span className={`hidden sm:block font-display text-lg font-extrabold tracking-tight transition-all duration-300 ${
+          <span className={`hidden sm:block font-display text-xl md:text-2xl font-extrabold tracking-tight transition-all duration-300 ${
             isTransparent ? 'text-white' : 'text-foreground'
           }`}>
             Deutsch <span className="text-gradient">mit</span> Omar
