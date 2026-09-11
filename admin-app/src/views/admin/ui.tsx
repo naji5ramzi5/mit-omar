@@ -354,18 +354,59 @@ export function LangInput({
       await Promise.all(
         targets.map(async (target) => {
           try {
-            const res = await fetch('/api/admin/translate', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                text: textToTranslate,
-                from: sourceLang.code,
-                to: target.code,
-              }),
-            });
-            const data = await res.json();
-            if (data.translation) {
-              updates[`${field}${target.key}`] = data.translation;
+            // Strategy 1: Direct Google GTX fetch from client (bypasses server IP restrictions, zero latency)
+            let translation: string | null = null;
+            try {
+              const gUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(sourceLang.code)}&tl=${encodeURIComponent(target.code)}&dt=t&q=${encodeURIComponent(textToTranslate)}`;
+              const gRes = await fetch(gUrl);
+              if (gRes.ok) {
+                const gData = await gRes.json();
+                if (Array.isArray(gData) && Array.isArray(gData[0])) {
+                  const combined = gData[0].map((c: any) => c[0]).join('');
+                  if (combined) translation = combined;
+                }
+              }
+            } catch (gErr) {
+              console.warn('Client Google Translate failed, trying server API:', gErr);
+            }
+
+            // Strategy 2: Server API endpoint (/api/admin/translate)
+            if (!translation) {
+              try {
+                const res = await fetch('/api/admin/translate', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    text: textToTranslate,
+                    from: sourceLang.code,
+                    to: target.code,
+                  }),
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  if (data.translation) translation = data.translation;
+                }
+              } catch (sErr) {
+                console.warn('Server translate API failed, trying MyMemory:', sErr);
+              }
+            }
+
+            // Strategy 3: Direct MyMemory fallback
+            if (!translation) {
+              try {
+                const mUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(textToTranslate)}&langpair=${sourceLang.code}|${target.code}`;
+                const mRes = await fetch(mUrl);
+                if (mRes.ok) {
+                  const mData = await mRes.json();
+                  if (mData.responseData?.translatedText) translation = mData.responseData.translatedText;
+                }
+              } catch (mErr) {
+                console.warn('Direct MyMemory failed:', mErr);
+              }
+            }
+
+            if (translation) {
+              updates[`${field}${target.key}`] = translation;
             }
           } catch (err) {
             console.error(`Failed to translate to ${target.label}:`, err);
