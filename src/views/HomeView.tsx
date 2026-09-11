@@ -509,34 +509,15 @@ export default function HomeView() {
               </p>
             </div>
 
-            {/* Level Filter Tabs */}
-            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-secondary/60 border border-border/60">
+            {/* All Courses Link */}
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => setActiveCourseLevel('all')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
-                  activeCourseLevel === 'all'
-                    ? 'bg-gradient-to-r from-brand-orange to-brand-red text-white shadow-sm shadow-brand-orange/25'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
-                }`}
+                onClick={() => navigate('courses')}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-secondary hover:bg-secondary/80 text-foreground border border-border flex items-center gap-1.5 transition-all group"
               >
-                {ht('الكل', 'Alle', 'All')}
+                <span>{ht('عرض كافة الدورات', 'Alle Kurse anzeigen', 'View All Courses')}</span>
+                <ArrowLeft className="w-3.5 h-3.5 rtl:rotate-0 rotate-180 group-hover:-translate-x-1 rtl:group-hover:translate-x-1 transition-transform" />
               </button>
-              {LEVELS.map(lvl => {
-                const count = courses.filter(c => c.level?.toUpperCase() === lvl).length;
-                return (
-                  <button
-                    key={lvl}
-                    onClick={() => setActiveCourseLevel(lvl)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
-                      activeCourseLevel === lvl
-                        ? 'bg-gradient-to-r from-brand-orange to-brand-red text-white shadow-sm shadow-brand-orange/25'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
-                    }`}
-                  >
-                    {lvl} {count > 0 && <span className="opacity-75 text-[10px] font-mono">({count})</span>}
-                  </button>
-                );
-              })}
             </div>
           </div>
 

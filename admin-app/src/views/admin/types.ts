@@ -6,16 +6,35 @@ export interface Course {
   descriptionAr?: string | null;
   descriptionDe?: string | null;
   descriptionEn?: string | null;
-  level: string;
+  level?: string;
   imageUrl?: string | null;
   order: number;
   isActive: boolean;
-  _count?: { lessons: number; enrollments: number };
+  _count?: { levels?: number; lessons: number; enrollments: number };
+  introVideo?: { videoUrl: string | null; duration: number; isPublished: boolean } | null;
+}
+
+export interface CourseLevel {
+  id: string;
+  courseId: string;
+  name: string; // e.g. 'A1', 'A2', 'B1', 'B2', 'C1'
+  titleAr: string;
+  titleDe: string;
+  titleEn: string;
+  descriptionAr?: string | null;
+  descriptionDe?: string | null;
+  descriptionEn?: string | null;
+  imageUrl?: string | null;
+  introVideoUrl?: string | null;
+  order: number;
+  isActive: boolean;
+  _count?: { lessons: number };
 }
 
 export interface Lesson {
   id: string;
   courseId: string;
+  levelId?: string | null;
   titleAr: string;
   titleDe: string;
   titleEn: string;

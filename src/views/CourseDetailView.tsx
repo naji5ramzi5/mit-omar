@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight, BookOpen, Clock, Lock, CheckCircle, Play, ChevronDown, ChevronUp,
   ArrowLeft, Users, Star, Video, Sparkles, KeyRound, AlertCircle, X, ShieldCheck,
-  CheckCircle2, Loader2, MessageCircle, HelpCircle, Award, ExternalLink
+  CheckCircle2, Loader2, MessageCircle, HelpCircle, Award, ExternalLink, Layers
 } from 'lucide-react';
 import { useAppStore } from '@/stores/app-store';
 import { useAuthStore } from '@/stores/auth-store';
@@ -14,6 +14,8 @@ import { resolveMediaUrl } from '@/lib/media';
 
 interface Lesson {
   id: string;
+  courseId?: string;
+  levelId?: string;
   titleAr: string; titleDe: string; titleEn: string;
   descriptionAr?: string; descriptionDe?: string; descriptionEn?: string;
   duration: number;
@@ -22,14 +24,29 @@ interface Lesson {
   progress?: { completed: boolean };
 }
 
+interface CourseLevel {
+  id: string;
+  courseId?: string;
+  name: string;
+  titleAr: string; titleDe: string; titleEn: string;
+  descriptionAr?: string; descriptionDe?: string; descriptionEn?: string;
+  imageUrl?: string;
+  introVideoUrl?: string;
+  order: number;
+  isActive: boolean;
+  lessons: Lesson[];
+  _count?: { lessons: number };
+}
+
 interface Course {
   id: string;
   titleAr: string; titleDe: string; titleEn: string;
   descriptionAr: string; descriptionDe: string; descriptionEn: string;
-  level: string;
+  level?: string;
   imageUrl?: string;
-  introVideo?: { videoUrl: string | null; duration: number; isPublished: boolean } | null;
+  introVideo?: { videoUrl: string | null; duration: number; isPublished: boolean; resolvedUrl?: string | null } | null;
   lessons: Lesson[];
+  levels?: CourseLevel[];
   enrollment?: { isActive: boolean; expiresAt: string | null; activatedAt: string | null; isExpired?: boolean };
 }
 
@@ -37,6 +54,7 @@ export default function CourseDetailView() {
   const { locale, navigate, viewParams } = useAppStore();
   const { isAuthenticated, token, user } = useAuthStore();
   const [course, setCourse] = useState<Course | null>(null);
+  const [activeLevelId, setActiveLevelId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ content: true });
 
@@ -84,6 +102,9 @@ export default function CourseDetailView() {
       if (!res.ok) throw new Error('Course not found');
       const data = await res.json();
       setCourse(data.course);
+      if (data.course?.levels?.length) {
+        setActiveLevelId((prev) => prev || data.course.levels[0].id);
+      }
       if (data.course?.introVideo?.resolvedUrl) {
         setIntroVideoUrl(data.course.introVideo.resolvedUrl);
       } else if (data.course?.introVideo?.videoUrl) {
@@ -211,12 +232,15 @@ export default function CourseDetailView() {
   }
 
   const courseObj = course as unknown as Record<string, unknown>;
-  const totalDuration = course.lessons.reduce((acc, l) => acc + l.duration, 0);
-  const totalLessons = course.lessons.length;
-  const completedCount = course.lessons.filter(l => l.progress?.completed).length;
+  const levels = course.levels || [];
+  const activeLevel = levels.find((lvl) => lvl.id === activeLevelId) || levels[0] || null;
+  const currentLessons = activeLevel ? (activeLevel.lessons || []) : (course.lessons || []);
+  const totalDuration = course.lessons ? course.lessons.reduce((acc, l) => acc + l.duration, 0) : 0;
+  const totalLessons = course.lessons ? course.lessons.length : 0;
+  const completedCount = course.lessons ? course.lessons.filter(l => l.progress?.completed).length : 0;
   const isEnrolled = !!course.enrollment?.isActive;
   const isExpired = !!course.enrollment?.isExpired;
-  const freeLesson = course.lessons.find(l => l.isFree);
+  const freeLesson = course.lessons ? course.lessons.find(l => l.isFree) : undefined;
   const hasIntroVideo = !!course.introVideo?.videoUrl;
 
   const expirationDate = course.enrollment?.expiresAt
@@ -406,14 +430,14 @@ export default function CourseDetailView() {
               </div>
             </div>
 
-            {/* 3. COURSE CURRICULUM & LESSONS (YouTube Chapters / Course Syllabus) */}
+            {/* 3. COURSE CURRICULUM & LEVELS & LESSONS */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="card-bold p-6 border-2 space-y-4"
+              className="card-bold p-6 border-2 space-y-5"
             >
-              <div className="flex items-center justify-between border-b border-border pb-4">
+              <div className="flex items-center justify-between border-b border-border pb-4 flex-wrap gap-2">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-brand-orange/10 flex items-center justify-center text-brand-orange">
                     <BookOpen className="w-5 h-5" />
@@ -423,80 +447,145 @@ export default function CourseDetailView() {
                       {t(locale, 'course_content')}
                     </h2>
                     <p className="text-xs text-muted-foreground">
-                      {totalLessons} درس • إجمالي المدة {Math.round(totalDuration / 60)} ساعة
+                      {levels.length} مستويات • {totalLessons} درس • إجمالي المدة {Math.max(1, Math.round(totalDuration / 60))} ساعة
                     </p>
                   </div>
                 </div>
 
                 <span className="text-xs font-bold px-3 py-1 rounded-full bg-secondary text-foreground">
-                  قائمة الدروس
+                  المستويات والدروس
                 </span>
               </div>
 
-              {/* Lessons List */}
-              <div className="space-y-3 pt-1">
-                {course.lessons.map((lesson, i) => {
-                  const canAccess = lesson.isFree || (isEnrolled && !isExpired);
-                  return (
-                    <motion.div
-                      key={lesson.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: i * 0.03 }}
-                      onClick={() => handleLessonClick(lesson)}
-                      className={`flex items-center gap-4 py-3.5 px-4 rounded-2xl cursor-pointer transition-all duration-200 border-2 ${
-                        lesson.isFree
-                          ? 'bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/30 shadow-xs'
-                          : canAccess
-                          ? 'bg-card hover:bg-brand-orange/5 hover:border-brand-orange/30 border-border'
-                          : 'bg-secondary/40 hover:bg-secondary/70 border-border/60'
-                      }`}
-                    >
-                      <div className="shrink-0">
-                        {canAccess ? (
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-xs transition-colors ${
-                            lesson.isFree 
-                              ? 'bg-emerald-500 text-white' 
-                              : 'bg-brand-orange text-white'
-                          }`}>
-                            <Play className="w-4 h-4 fill-current ms-0.5" />
-                          </div>
-                        ) : (
-                          <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground">
-                            <Lock className="w-4 h-4" />
-                          </div>
-                        )}
+              {/* Levels Selector Tabs */}
+              {levels.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                    {levels.map((lvl) => {
+                      const isActive = (activeLevel?.id === lvl.id);
+                      return (
+                        <button
+                          key={lvl.id}
+                          onClick={() => setActiveLevelId(lvl.id)}
+                          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 shrink-0 flex items-center gap-2 border-2 ${
+                            isActive
+                              ? 'bg-gradient-to-r from-brand-orange to-brand-red text-white border-transparent shadow-md scale-102'
+                              : 'bg-secondary/60 hover:bg-secondary border-border text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          <span className="font-black">{lvl.name}</span>
+                          <span className={`text-[11px] px-1.5 py-0.5 rounded-md ${isActive ? 'bg-black/20 text-white' : 'bg-background text-muted-foreground'}`}>
+                            {lvl.lessons?.length ?? 0} درس
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Active Level Header & Intro Video banner if available */}
+                  {activeLevel && (
+                    <div className="p-4 rounded-2xl bg-secondary/40 border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-bold text-foreground">
+                          {getField(activeLevel as unknown as Record<string, unknown>, 'title') || `المستوى ${activeLevel.name}`}
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                          {getField(activeLevel as unknown as Record<string, unknown>, 'description') || 'دروس وتمارين هذا المستوى التعليمي.'}
+                        </p>
                       </div>
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-mono font-bold text-muted-foreground">
-                            #{i + 1}
-                          </span>
-                          <p className="text-sm font-bold text-foreground truncate">
-                            {getField(lesson as unknown as Record<string, unknown>, 'title')}
-                          </p>
-                          {lesson.isFree && (
-                            <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              الدرس المجاني المتاح للجميع
-                            </span>
-                          )}
-                          {!lesson.isFree && !canAccess && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-secondary text-muted-foreground flex items-center gap-1">
-                              <Lock className="w-3 h-3" /> يتطلب كود تفعيل
-                            </span>
+                      {activeLevel.introVideoUrl && (
+                        <button
+                          onClick={() => {
+                            setIntroVideoUrl(activeLevel.introVideoUrl || null);
+                            if (videoPlayerRef.current) {
+                              videoPlayerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              videoPlayerRef.current.play().catch(() => {});
+                            }
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-brand-orange/10 hover:bg-brand-orange/20 text-brand-orange font-bold text-xs border border-brand-orange/30 flex items-center gap-1.5 shrink-0 transition-all"
+                        >
+                          <Play className="w-3 h-3 fill-current" />
+                          فيديو مقدمة المستوى
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Lessons List for the Selected Level */}
+              <div className="space-y-3 pt-1">
+                {currentLessons.length === 0 ? (
+                  <div className="text-center py-10 bg-secondary/20 rounded-2xl border border-dashed border-border">
+                    <p className="text-xs text-muted-foreground font-semibold">
+                      لا توجد دروس مضافة لهذا المستوى حالياً، سيتم نشرها قريباً.
+                    </p>
+                  </div>
+                ) : (
+                  currentLessons.map((lesson, i) => {
+                    const canAccess = lesson.isFree || (isEnrolled && !isExpired);
+                    return (
+                      <motion.div
+                        key={lesson.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: i * 0.03 }}
+                        onClick={() => handleLessonClick(lesson)}
+                        className={`flex items-center gap-4 py-3.5 px-4 rounded-2xl cursor-pointer transition-all duration-200 border-2 ${
+                          lesson.isFree
+                            ? 'bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/30 shadow-xs'
+                            : canAccess
+                            ? 'bg-card hover:bg-brand-orange/5 hover:border-brand-orange/30 border-border'
+                            : 'bg-secondary/40 hover:bg-secondary/70 border-border/60'
+                        }`}
+                      >
+                        <div className="shrink-0">
+                          {canAccess ? (
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-xs transition-colors ${
+                              lesson.isFree 
+                                ? 'bg-emerald-500 text-white' 
+                                : 'bg-brand-orange text-white'
+                            }`}>
+                              <Play className="w-4 h-4 fill-current ms-0.5" />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground">
+                              <Lock className="w-4 h-4" />
+                            </div>
                           )}
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0 font-bold">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>{lesson.duration} دقيقة</span>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-mono font-bold text-muted-foreground">
+                              #{String(i + 1).padStart(2, '0')}
+                            </span>
+                            <p className="text-sm font-bold text-foreground truncate">
+                              {getField(lesson as unknown as Record<string, unknown>, 'title')}
+                            </p>
+                            {lesson.isFree && (
+                              <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                الدرس المجاني المتاح للجميع
+                              </span>
+                            )}
+                            {!lesson.isFree && !canAccess && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-secondary text-muted-foreground flex items-center gap-1">
+                                <Lock className="w-3 h-3" /> يتطلب كود تفعيل
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0 font-bold">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>{lesson.duration} دقيقة</span>
+                        </div>
+                      </motion.div>
+                    );
+                  })
+                )}
               </div>
             </motion.div>
           </div>
@@ -533,12 +622,22 @@ export default function CourseDetailView() {
 
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                      <Layers className="w-4 h-4" />
+                    </div>
+                    المستويات المتاحة
+                  </span>
+                  <span className="font-bold text-foreground">{levels.length || 1} مستويات</span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-2">
                     <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
                       <Star className="w-4 h-4" />
                     </div>
-                    المستوى التعليمي
+                    المستوى الحالي
                   </span>
-                  <span className="level-badge font-bold">{course.level}</span>
+                  <span className="level-badge font-bold">{activeLevel?.name || course.level || 'A1'}</span>
                 </div>
 
                 <div className="flex items-center justify-between">

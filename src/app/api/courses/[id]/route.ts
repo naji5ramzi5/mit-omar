@@ -18,7 +18,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         .from('courses')
         .select(
           includeLessons
-            ? '*, lessons(id, titleAr, titleDe, titleEn, descriptionAr, descriptionDe, descriptionEn, duration, "order", isFree, videoUrl)'
+            ? '*, lessons(id, levelId, titleAr, titleDe, titleEn, descriptionAr, descriptionDe, descriptionEn, duration, "order", isFree, videoUrl)'
             : '*'
         )
         .eq('id', id)
@@ -64,6 +64,23 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     const courseData = course as any;
 
+    // ── Fetch levels from course_levels ──────────────────────────────────────
+    let levels: any[] = [];
+    try {
+      const { data: levelRows } = await supabaseAdmin
+        .from('course_levels')
+        .select('*')
+        .eq('courseId', id)
+        .eq('isActive', true)
+        .order('order', { ascending: true });
+
+      if (levelRows && levelRows.length > 0) {
+        levels = levelRows;
+      }
+    } catch {
+      // Graceful fallback if table not yet migrated
+    }
+
     // ── Sort lessons ─────────────────────────────────────────────────────────
     let lessons: any[] = courseData.lessons || [];
     if (Array.isArray(lessons)) {
@@ -95,12 +112,51 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     // ── Sanitize lessons: hide videoUrl for paid lessons ────────────────────
-    const sanitizedLessons = Array.isArray(lessons)
-      ? lessons.map((l: Record<string, unknown>) => ({
+    const sanitizedLessons: any[] = Array.isArray(lessons)
+      ? lessons.map((l: any) => ({
           ...l,
           videoUrl: l.isFree ? l.videoUrl : undefined,
         }))
-      : undefined;
+      : [];
+
+    // ── Group lessons into levels ───────────────────────────────────────────
+    let structuredLevels: any[] = [];
+    if (levels.length > 0) {
+      structuredLevels = levels.map((lvl) => {
+        const lvlLessons = sanitizedLessons.filter((l) => l.levelId === lvl.id);
+        return {
+          ...lvl,
+          lessons: lvlLessons,
+          _count: { lessons: lvlLessons.length },
+        };
+      });
+
+      // Catch any lessons that have no levelId or unmapped levelId and assign to first level
+      const unassignedLessons = sanitizedLessons.filter(
+        (l) => !l.levelId || !levels.some((lvl) => lvl.id === l.levelId)
+      );
+      if (unassignedLessons.length > 0 && structuredLevels.length > 0) {
+        structuredLevels[0].lessons = [...structuredLevels[0].lessons, ...unassignedLessons];
+        structuredLevels[0]._count.lessons = structuredLevels[0].lessons.length;
+      }
+    } else {
+      // Fallback: create synthesized level so UI always has uniform levels array
+      const defaultName = courseData.level || 'A1';
+      structuredLevels = [
+        {
+          id: 'default-' + id,
+          courseId: id,
+          name: defaultName,
+          titleAr: 'المستوى ' + defaultName,
+          titleDe: 'Stufe ' + defaultName,
+          titleEn: 'Level ' + defaultName,
+          order: 0,
+          isActive: true,
+          lessons: sanitizedLessons,
+          _count: { lessons: sanitizedLessons.length },
+        },
+      ];
+    }
 
     const response = NextResponse.json({
       course: {
@@ -108,7 +164,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         introVideo: introVideo.isPublished
           ? { ...introVideo, resolvedUrl: resolvedIntroUrl }
           : null,
-        ...(sanitizedLessons ? { lessons: sanitizedLessons } : {}),
+        lessons: sanitizedLessons,
+        levels: structuredLevels,
         enrollment,
       },
     });

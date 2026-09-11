@@ -75,9 +75,26 @@ export async function GET(req: Request) {
 
     if (error) throw error;
 
+    // Try fetching levels count from course_levels
+    let levelCountMap = new Map<string, number>();
+    try {
+      const { data: levelRows } = await supabaseAdmin
+        .from('course_levels')
+        .select('courseId')
+        .eq('isActive', true);
+      if (levelRows) {
+        for (const row of levelRows) {
+          levelCountMap.set(row.courseId, (levelCountMap.get(row.courseId) || 0) + 1);
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
     const list = (courses as any[] || []).map((c: any) => ({
       ...c,
       _count: {
+        levels: levelCountMap.get(c.id) ?? (c.level ? 1 : 0),
         lessons: includeLessons
           ? (c.lessons || []).length
           : c.lessons?.[0]?.count ?? 0,

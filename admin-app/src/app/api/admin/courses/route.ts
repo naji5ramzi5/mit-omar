@@ -13,11 +13,28 @@ export async function GET(req: Request) {
       .order('order', { ascending: true });
 
     if (error) throw error;
+
+    // Try fetching levels count from course_levels
+    let levelCountMap = new Map<string, number>();
+    try {
+      const { data: levelRows } = await supabaseAdmin
+        .from('course_levels')
+        .select('courseId');
+      if (levelRows) {
+        for (const row of levelRows) {
+          levelCountMap.set(row.courseId, (levelCountMap.get(row.courseId) || 0) + 1);
+        }
+      }
+    } catch {
+      // If course_levels table not yet migrated, fallback safely
+    }
+
     const normalized = (courses as any[] || []).map((c) => ({
       ...c,
       lessons: undefined,
       enrollments: undefined,
       _count: {
+        levels: levelCountMap.get(c.id) ?? (c.level ? 1 : 0),
         lessons: c.lessons?.[0]?.count ?? 0,
         enrollments: c.enrollments?.[0]?.count ?? 0,
       },
@@ -41,7 +58,7 @@ export async function POST(req: Request) {
       introVideoUrl, introVideoDuration, isIntroPublished
     } = body;
 
-    if (!titleAr || !titleDe || !titleEn || !level) {
+    if (!titleAr || !titleDe || !titleEn) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -52,7 +69,7 @@ export async function POST(req: Request) {
         descriptionAr: descriptionAr || '',
         descriptionDe: descriptionDe || '',
         descriptionEn: descriptionEn || '',
-        level,
+        level: level || 'ALL',
         imageUrl: imageUrl || null,
         order: order ?? 0,
         isActive: isActive ?? true,
