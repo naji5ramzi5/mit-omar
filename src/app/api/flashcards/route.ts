@@ -11,10 +11,10 @@ export async function GET(req: Request) {
     const userId = decodeUserId(req);
 
     // Fetch all published words for this list, ordered
-    // Note: "order" must be escaped as it is a reserved keyword in Postgres
+    // Note: in Supabase Postgres schema, example columns are exampleDe, example_ar, example_en, audio_url
     const { data: words, error } = await supabaseAdmin
       .from('words')
-      .select('id, wordDe, wordAr, wordEn, exampleDe, exampleAr, exampleEn, audio_url, published, order')
+      .select('id, wordDe, wordAr, wordEn, exampleDe, example_ar, example_en, audio_url, published, order')
       .eq('listId', listId)
       .eq('published', true)          // Always filter to published only
       .order('order', { ascending: true });
@@ -29,8 +29,8 @@ export async function GET(req: Request) {
       wordAr: w.wordAr,
       wordEn: w.wordEn,
       exampleDe: w.exampleDe || '',
-      exampleAr: w.exampleAr || '',
-      exampleEn: w.exampleEn || '',
+      exampleAr: w.example_ar || w.exampleAr || '',
+      exampleEn: w.example_en || w.exampleEn || '',
       audioUrl: w.audio_url || null,
     }));
 

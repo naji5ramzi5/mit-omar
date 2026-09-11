@@ -48,6 +48,7 @@ export default function FlashcardsView() {
   const [loading, setLoading] = useState(true);
   const [selectedList, setSelectedList] = useState<WordList | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
+  const [cardsLoading, setCardsLoading] = useState(false);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [done, setDone] = useState(false);
@@ -98,19 +99,19 @@ export default function FlashcardsView() {
         badge: 'Lernkarten',
         title: 'Deutsche Wörter sicher behalten',
         subtitle: 'Mit intelligentem Wiederholen tauchen die Karten genau dann wieder auf, wenn du sie brauchst',
-        choose: 'Wähle eine Wortliste',
+        choose: 'Wortliste auswählen',
         wordsCount: (n: number) => `${n} Wörter`,
-        start: 'Lernen starten',
-        showAnswer: 'Antwort zeigen',
+        start: 'Wiederholen starten',
+        showAnswer: 'Bedeutung anzeigen',
         meaning: 'Bedeutung',
         example: 'Beispiel',
         gradeHint: 'Bewerte dich ehrlich — das System merkt es sich',
-        sessionDone: 'Sitzung beendet!',
-        sessionAgain: 'Wörter brauchen Wiederholung? Neue Runde',
-        loginHint: 'Melde dich an, um deinen Fortschritt zu speichern',
-        restart: 'Neue Runde',
+        sessionDone: 'Lernrunde beendet!',
+        sessionAgain: 'Wörter jetzt wiederholen? Neue Runde',
+        loginHint: 'Melde dich an, um deinen Lernfortschritt zu speichern',
+        restart: 'Neu starten',
         chooseAnother: 'Andere Liste',
-        noCards: 'Keine Wörter in dieser Liste',
+        noCards: 'Noch keine Wörter in dieser Liste',
         again: GRADES[0].labelDe,
         hard: GRADES[1].labelDe,
         good: GRADES[2].labelDe,
@@ -143,9 +144,9 @@ export default function FlashcardsView() {
     fetch('/api/flashcards/lists')
       .then((r) => r.json())
       .then((data) => {
-        const normalized = (data.lists || []).map((l: WordList) => ({
+        const normalized = (data.lists || []).map((l: any) => ({
           ...l,
-          wordCount: l.words?.[0]?.count ?? 0,
+          wordCount: l.wordCount ?? l.words?.[0]?.count ?? 0,
         }));
         setLists(normalized);
       })
@@ -167,9 +168,17 @@ export default function FlashcardsView() {
     setSelectedList(list);
     setCards([]);
     resetSession();
-    const res = await fetch(`/api/flashcards?listId=${list.id}`);
-    const data = await res.json();
-    setCards(data.cards || []);
+    setCardsLoading(true);
+    try {
+      const res = await fetch(`/api/flashcards?listId=${list.id}`);
+      const data = await res.json();
+      setCards(data.cards || []);
+    } catch (e) {
+      console.error('Failed to load flashcards:', e);
+      setCards([]);
+    } finally {
+      setCardsLoading(false);
+    }
   };
 
   const speakTTS = useCallback((word: string) => {
@@ -276,23 +285,31 @@ export default function FlashcardsView() {
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => <div key={i} className="h-16 skeleton-bold rounded-xl" />)}
           </div>
-        ) : selectedList && cards.length > 0 ? (
-          <div>
-            {/* Session header */}
-            <div className="flex items-center justify-between mb-5">
-              <button
-                onClick={() => { setSelectedList(null); setCards([]); }}
-                className="text-sm font-bold text-muted-foreground hover:text-brand-orange transition-colors flex items-center gap-1.5"
-              >
-                <ArrowRight className={`w-4 h-4 ${locale === 'ar' ? 'rotate-180' : ''}`} />
-                {ui.chooseAnother}
-              </button>
-              <div className="flex items-center gap-1.5 text-sm font-bold text-brand-orange">
-                <span>{index + 1}</span>
-                <span className="text-muted-foreground">/</span>
-                <span>{cards.length}</span>
-              </div>
+        ) : selectedList ? (
+          cardsLoading ? (
+            <div className="card-bold p-16 text-center flex flex-col items-center justify-center space-y-4">
+              <Loader2 className="w-8 h-8 text-brand-orange animate-spin" />
+              <p className="text-sm font-bold text-muted-foreground">
+                {locale === 'de' ? 'Lernkarten werden geladen...' : locale === 'en' ? 'Loading flashcards...' : 'جارٍ تحميل البطاقات التعليمية...'}
+              </p>
             </div>
+          ) : cards.length > 0 ? (
+            <div>
+              {/* Session header */}
+              <div className="flex items-center justify-between mb-5">
+                <button
+                  onClick={() => { setSelectedList(null); setCards([]); }}
+                  className="text-sm font-bold text-muted-foreground hover:text-brand-orange transition-colors flex items-center gap-1.5"
+                >
+                  <ArrowRight className={`w-4 h-4 ${locale === 'ar' ? 'rotate-180' : ''}`} />
+                  {ui.chooseAnother}
+                </button>
+                <div className="flex items-center gap-1.5 text-sm font-bold text-brand-orange">
+                  <span>{index + 1}</span>
+                  <span className="text-muted-foreground">/</span>
+                  <span>{cards.length}</span>
+                </div>
+              </div>
 
             {/* Progress bar */}
             <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden mb-6">
@@ -391,6 +408,24 @@ export default function FlashcardsView() {
               </div>
             </div>
           </div>
+        ) : (
+            <div className="card-bold p-12 text-center">
+              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-secondary flex items-center justify-center text-muted-foreground">
+                <Layers className="w-7 h-7 text-brand-orange" />
+              </div>
+              <h3 className="text-base font-bold text-foreground mb-1">{ui.noCards}</h3>
+              <p className="text-xs text-muted-foreground mb-6">
+                {locale === 'de' ? 'In dieser Liste sind derzeit keine aktiven Karten vorhanden.' : locale === 'en' ? 'There are no active cards in this list yet.' : 'لا توجد بطاقات منشورة في هذه القائمة حتى الآن.'}
+              </p>
+              <button
+                onClick={() => { setSelectedList(null); setCards([]); }}
+                className="btn-bold-secondary inline-flex items-center gap-2"
+              >
+                <ArrowRight className={`w-4 h-4 ${locale === 'ar' ? 'rotate-180' : ''}`} />
+                <span>{ui.chooseAnother}</span>
+              </button>
+            </div>
+          )
         ) : done ? (
           <div className="card-bold p-10 text-center">
             <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center shadow-md">

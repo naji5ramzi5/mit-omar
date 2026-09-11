@@ -12,7 +12,16 @@ export async function GET(req: Request) {
     if (listId) query = query.eq('listId', listId);
     const { data, error } = await query;
     if (error) throw error;
-    return NextResponse.json({ words: data || [] });
+    
+    // Map to frontend-friendly fields
+    const words = (data || []).map((w: any) => ({
+      ...w,
+      audioUrl: w.audio_url || null,
+      exampleAr: w.example_ar || '',
+      exampleEn: w.example_en || '',
+    }));
+
+    return NextResponse.json({ words });
   } catch (e) {
     console.error('admin flashcards words GET', e);
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
@@ -26,24 +35,35 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { listId, wordDe, wordAr, wordEn, exampleDe, exampleAr, exampleEn, audioUrl, order, published } = body;
     if (!listId || !wordDe) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+
+    const insertPayload: Record<string, any> = {
+      listId,
+      wordDe,
+      wordAr: wordAr || '',
+      wordEn: wordEn || '',
+      exampleDe: exampleDe || '',
+      example_ar: exampleAr || body.example_ar || null,
+      example_en: exampleEn || body.example_en || null,
+      audio_url: audioUrl || body.audio_url || null,
+      order: order ?? 0,
+      published: published !== false,
+    };
+
     const { data, error } = await supabaseAdmin
       .from('words')
-      .insert({
-        listId,
-        wordDe,
-        wordAr,
-        wordEn,
-        exampleDe,
-        exampleAr,
-        exampleEn,
-        audioUrl: audioUrl || null,
-        order: order ?? 0,
-        published: published !== false,
-      })
+      .insert(insertPayload)
       .select()
       .single();
     if (error) throw error;
-    return NextResponse.json({ word: data });
+    
+    const word = {
+      ...data,
+      audioUrl: data.audio_url || null,
+      exampleAr: data.example_ar || '',
+      exampleEn: data.example_en || '',
+    };
+
+    return NextResponse.json({ word });
   } catch (e) {
     console.error('admin flashcards words POST', e);
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
