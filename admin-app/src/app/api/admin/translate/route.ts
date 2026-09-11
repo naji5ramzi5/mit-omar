@@ -2,14 +2,13 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { text, from, to } = body;
+    const { text, from, to } = await req.json();
 
     if (!text || !from || !to) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Google Translate endpoint
+    // Fast, accurate Google Translate engine
     try {
       const gUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(from)}&tl=${encodeURIComponent(to)}&dt=t&q=${encodeURIComponent(text)}`;
       const gRes = await fetch(gUrl);
@@ -36,8 +35,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ error: 'Translation failed' }, { status: 500 });
-  } catch (error: any) {
-    console.error('Translation error:', error);
-    return NextResponse.json({ error: error.message || 'Translation service unavailable' }, { status: 500 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Translation error' }, { status: 500 });
   }
 }

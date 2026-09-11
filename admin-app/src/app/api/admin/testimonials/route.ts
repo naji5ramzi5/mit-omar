@@ -27,16 +27,30 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { nameAr, nameDe, nameEn, roleAr, roleDe, roleEn, textAr, textDe, textEn, level, rating, avatar, isActive, order } = body;
 
-    if (!nameAr || !nameDe || !nameEn || !textAr || !textDe || !textEn) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    const finalNameAr = nameAr || nameDe || nameEn;
+    const finalNameDe = nameDe || nameAr || nameEn;
+    const finalNameEn = nameEn || nameDe || nameAr;
+
+    const finalTextAr = textAr || textDe || textEn;
+    const finalTextDe = textDe || textAr || finalTextAr;
+    const finalTextEn = textEn || textDe || finalTextAr;
+
+    if (!finalNameAr || !finalTextAr) {
+      return NextResponse.json({ error: 'يرجى إدخال الاسم ونص الرأي' }, { status: 400 });
     }
 
     const { data: testimonial, error } = await supabaseAdmin
       .from('testimonials')
       .insert({
-        nameAr, nameDe, nameEn,
-        roleAr: roleAr || null, roleDe: roleDe || null, roleEn: roleEn || null,
-        textAr, textDe, textEn,
+        nameAr: finalNameAr,
+        nameDe: finalNameDe,
+        nameEn: finalNameEn,
+        roleAr: roleAr || null,
+        roleDe: roleDe || null,
+        roleEn: roleEn || null,
+        textAr: finalTextAr,
+        textDe: finalTextDe,
+        textEn: finalTextEn,
         level: level || null,
         rating: rating ?? 5,
         avatar: avatar || null,
@@ -45,6 +59,7 @@ export async function POST(req: Request) {
       })
       .select()
       .single();
+
 
     if (error) throw error;
     return NextResponse.json({ testimonial }, { status: 201 });

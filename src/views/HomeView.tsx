@@ -180,10 +180,31 @@ export default function HomeView() {
   const BackArrow = isRtl ? ArrowRight : ArrowLeft;
   const FwdArrow = isRtl ? ArrowLeft : ArrowRight;
 
+  const ht = (ar: string, de: string, en?: string) => {
+    if (locale === 'de') return de;
+    if (locale === 'en') return en || de;
+    return ar;
+  };
+
   const getField = (obj: Record<string, unknown> | undefined, field: string) => {
     if (!obj) return '';
     const localeKey = locale.charAt(0).toUpperCase() + locale.slice(1);
-    return (obj[`${field}${localeKey}`] as string) || (obj[`${field}Ar`] as string) || (obj[`${field}De`] as string) || '';
+    const directVal = (obj[`${field}${localeKey}`] as string)?.trim();
+    if (directVal) return directVal;
+
+    if (locale === 'de') {
+      const deVal = (obj[`${field}De`] as string)?.trim();
+      if (deVal) return deVal;
+      const enVal = (obj[`${field}En`] as string)?.trim();
+      if (enVal) return enVal;
+    } else if (locale === 'en') {
+      const enVal = (obj[`${field}En`] as string)?.trim();
+      if (enVal) return enVal;
+      const deVal = (obj[`${field}De`] as string)?.trim();
+      if (deVal) return deVal;
+    }
+
+    return (obj[`${field}Ar`] as string) || (obj[`${field}De`] as string) || (obj[`${field}En`] as string) || '';
   };
 
   const getPostField = (obj: Record<string, unknown>, field: string) => getField(obj, field);
@@ -286,7 +307,7 @@ export default function HomeView() {
 
                     <div className="inline-flex items-center rounded-xl bg-white/[0.08] backdrop-blur-xl border border-white/10 overflow-hidden shadow-xs">
                       {[
-                        { v: `${stats.students}+`, l: 'متابع وطالب' },
+                        { v: `${stats.students}+`, l: ht('متابع وطالب', 'Lernende & Follower', 'Students & Followers') },
                         { v: `${stats.years}+`, l: t(locale, 'stats_years') },
                         { v: `${stats.courses}+`, l: t(locale, 'stats_courses') },
                       ].map((s, i, arr) => (
@@ -306,7 +327,7 @@ export default function HomeView() {
               <div className="flex items-center gap-2 mt-4 px-4 sm:px-6 lg:px-8">
                 <button
                   onClick={prevSlide}
-                  aria-label="السابق"
+                  aria-label={ht('السابق', 'Zurück', 'Previous')}
                   className="w-9 h-9 rounded-full border border-white/15 bg-white/10 backdrop-blur-xl flex items-center justify-center text-white hover:bg-white/20 hover:scale-105 active:scale-95 transition-all duration-200"
                 >
                   <BackArrow className="w-4 h-4" />
@@ -329,7 +350,7 @@ export default function HomeView() {
                 </div>
                 <button
                   onClick={nextSlide}
-                  aria-label="التالي"
+                  aria-label={ht('التالي', 'Weiter', 'Next')}
                   className="w-9 h-9 rounded-full border border-white/15 bg-white/10 backdrop-blur-xl flex items-center justify-center text-white hover:bg-white/20 hover:scale-105 active:scale-95 transition-all duration-200"
                 >
                   <FwdArrow className="w-4 h-4" />
@@ -350,14 +371,14 @@ export default function HomeView() {
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-orange/10 text-brand-orange text-xs font-bold mb-2 border border-brand-orange/15 shadow-xs">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>مسارات التعلم المتخصصة</span>
+                <span>{ht('مسارات التعلم المتخصصة', 'Spezialisierte Lernpfade', 'Specialized Learning Paths')}</span>
               </div>
               <h2 className="font-display text-xl sm:text-2xl lg:text-3xl font-black text-foreground tracking-tight">
-                التصنيفات والخدمات التعليمية
+                {ht('التصنيفات والخدمات التعليمية', 'Kategorien & Bildungsangebote', 'Categories & Educational Services')}
               </h2>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-sm">
-              اختر مسارك التعليمي المفضل وابدأ فوراً بدراسة اللغة الألمانية واجتياز الامتحانات
+              {ht('اختر مسارك التعليمي المفضل وابدأ فوراً بدراسة اللغة الألمانية واجتياز الامتحانات', 'Wählen Sie Ihren bevorzugten Lernpfad und starten Sie sofort mit Deutsch und der Prüfungsvorbereitung.', 'Choose your preferred learning path and start learning German and preparing for exams right away.')}
             </p>
           </div>
 
@@ -366,9 +387,9 @@ export default function HomeView() {
             {[
               {
                 icon: BookOpen,
-                tag: '5 مستويات',
-                title: 'دورات المستويات (A1–C1)',
-                desc: 'تأسيس شامل للقواعد والمحادثة وفق الإطار الأوروبي',
+                tag: ht('5 مستويات', '5 Niveaustufen', '5 Levels'),
+                title: ht('دورات المستويات (A1–C1)', 'Niveaukurse (A1–C1)', 'Level Courses (A1–C1)'),
+                desc: ht('تأسيس شامل للقواعد والمحادثة وفق الإطار الأوروبي', 'Umfassende Grundlagen in Grammatik und Konversation nach GER', 'Comprehensive grammar and conversation foundation based on CEFR'),
                 action: () => {
                   const el = document.getElementById('educational-pathways');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -383,9 +404,9 @@ export default function HomeView() {
               },
               {
                 icon: Award,
-                tag: 'امتحانات دولية',
-                title: 'امتحانات Goethe & Telc',
-                desc: 'نماذج وتدريبات مكثفة على امتحانات السفارة ولم الشمل',
+                tag: ht('امتحانات دولية', 'Offizielle Prüfungen', 'Official Exams'),
+                title: ht('امتحانات Goethe & Telc', 'Goethe- & Telc-Prüfungen', 'Goethe & Telc Exams'),
+                desc: ht('نماذج وتدريبات مكثفة على امتحانات السفارة ولم الشمل', 'Intensive Vorbereitung auf Botschafts- und Visaprüfungen', 'Intensive preparation for embassy and family reunion exams'),
                 action: () => navigate('exams'),
                 gradient: 'from-blue-600 to-indigo-700',
                 glowColor: 'hover:shadow-blue-500/15',
@@ -396,9 +417,9 @@ export default function HomeView() {
               },
               {
                 icon: Trophy,
-                tag: 'تقييم فوري',
-                title: 'الاختبارات التفاعلية',
-                desc: 'اختبر مستواك بدقة مع تصحيح ذكي للدرجات',
+                tag: ht('تقييم فوري', 'Sofortige Auswertung', 'Instant Evaluation'),
+                title: ht('الاختبارات التفاعلية', 'Interaktive Tests', 'Interactive Quizzes'),
+                desc: ht('اختبر مستواك بدقة مع تصحيح ذكي للدرجات', 'Ermitteln Sie Ihr Sprachniveau präzise mit Sofort-Feedback', 'Test your language level accurately with smart scoring'),
                 action: () => navigate('exams'),
                 gradient: 'from-emerald-500 to-teal-700',
                 glowColor: 'hover:shadow-emerald-500/15',
@@ -409,9 +430,9 @@ export default function HomeView() {
               },
               {
                 icon: BookMarked,
-                tag: 'ذاكرة وتكرار',
-                title: 'بطاقات الحفظ السريع',
-                desc: 'أهم الكلمات والتراكيب مع النطق الصوتي والأمثلة',
+                tag: ht('ذاكرة وتكرار', 'Wiederholung', 'Spaced Repetition'),
+                title: ht('بطاقات الحفظ السريع', 'Lernkarten & Vokabeln', 'Vocabulary Flashcards'),
+                desc: ht('أهم الكلمات والتراكيب مع النطق الصوتي والأمثلة', 'Wichtige Wörter und Phrasen mit nativer Aussprache', 'Key words and phrases with audio pronunciation and examples'),
                 action: () => navigate('flashcards'),
                 gradient: 'from-purple-600 to-fuchsia-600',
                 glowColor: 'hover:shadow-purple-500/15',
@@ -422,9 +443,9 @@ export default function HomeView() {
               },
               {
                 icon: Calendar,
-                tag: 'جلسات خاصة',
-                title: 'حجز درس أونلاين',
-                desc: 'تدريب مباشر ومحادثة فردية 1:1 مع الأستاذ عمر',
+                tag: ht('جلسات خاصة', '1:1 Unterricht', 'Private 1:1'),
+                title: ht('حجز درس أونلاين', 'Online-Stunde buchen', 'Book Online Lesson'),
+                desc: ht('تدريب مباشر ومحادثة فردية 1:1 مع الأستاذ عمر', 'Individuelle Betreuung und Konversation mit Lehrer Omar', 'Direct 1:1 coaching and conversation with Teacher Omar'),
                 action: () => navigate('online_booking'),
                 gradient: 'from-rose-500 to-red-600',
                 glowColor: 'hover:shadow-rose-500/15',
@@ -462,7 +483,7 @@ export default function HomeView() {
                 </div>
 
                 <div className={`relative z-10 pt-3 mt-3.5 border-t border-border/50 flex items-center justify-between text-xs font-bold ${cat.btnColor}`}>
-                  <span>دخول المسار</span>
+                  <span>{ht('دخول المسار', 'Pfad öffnen', 'Open Path')}</span>
                   <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center group-hover:bg-brand-orange group-hover:text-white transition-colors duration-200">
                     <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                   </div>
@@ -481,10 +502,10 @@ export default function HomeView() {
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="font-display text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
-                المسارات التعليمية
+                {ht('المسارات التعليمية', 'Bildungswege & Kurse', 'Educational Pathways & Courses')}
               </h2>
               <p className="text-muted-foreground text-xs sm:text-sm mt-1">
-                دورات منهجية متكاملة وفق الإطار الأوروبي المشترك (CEFR)
+                {ht('دورات منهجية متكاملة وفق الإطار الأوروبي المشترك (CEFR)', 'Methodische Gesamtkurse nach dem Gemeinsamen Europäischen Referenzrahmen (GER)', 'Systematic comprehensive courses aligned with the CEFR')}
               </p>
             </div>
 
@@ -498,7 +519,7 @@ export default function HomeView() {
                     : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
                 }`}
               >
-                الكل
+                {ht('الكل', 'Alle', 'All')}
               </button>
               {LEVELS.map(lvl => {
                 const count = courses.filter(c => c.level?.toUpperCase() === lvl).length;
@@ -554,7 +575,7 @@ export default function HomeView() {
                           {hasFreeLesson && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-900/90 dark:bg-slate-800 text-white border border-slate-700 shadow-xs flex items-center gap-1">
                               <Star className="w-2.5 h-2.5 text-brand-orange fill-brand-orange" />
-                              الدرس مجاني
+                              {ht('الدرس مجاني', 'Kostenlose Lektion', 'Free Lesson')}
                             </span>
                           )}
                         </div>
@@ -562,7 +583,7 @@ export default function HomeView() {
                         {/* Direct Play Intro Video Pill */}
                         <button
                           onClick={() => navigate('course-detail', { id: course.id })}
-                          aria-label="مشاهدة الفيديو التعريفي"
+                          aria-label={ht('مشاهدة الفيديو التعريفي', 'Einführungsvideo ansehen', 'Watch Intro Video')}
                           className="absolute inset-0 m-auto w-11 h-11 rounded-full bg-slate-900/85 hover:bg-brand-orange text-white flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
                         >
                           <Play className="w-4 h-4 fill-current ms-0.5" />
@@ -575,22 +596,22 @@ export default function HomeView() {
                           {getField(courseObj, 'title')}
                         </h3>
                         <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                          {getField(courseObj, 'description') || 'منهاج تدريبي مكثف لاحتراف اللغة الألمانية واجتياز الامتحانات الرسمية.'}
+                          {getField(courseObj, 'description') || ht('منهاج تدريبي مكثف لاحتراف اللغة الألمانية واجتياز الامتحانات الرسمية.', 'Intensiver Lehrplan zum Meistern der deutschen Sprache und Bestehen der Prüfungen.', 'Intensive curriculum to master German and pass official exams.')}
                         </p>
 
                         {/* Meta Info */}
                         <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border/60">
                           <span className="flex items-center gap-1 font-medium">
                             <BookOpen className="w-3.5 h-3.5 text-brand-orange" />
-                            {lessonsCount} درس
+                            {lessonsCount} {ht('درس', 'Lektionen', 'Lessons')}
                           </span>
                           <span className="flex items-center gap-1 font-medium">
                             <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                            {Math.round(totalDuration / 60)} ساعة
+                            {Math.round(totalDuration / 60)} {ht('ساعة', 'Std.', 'Hours')}
                           </span>
                           <span className="flex items-center gap-1 font-medium text-brand-orange">
                             <ShieldCheck className="w-3.5 h-3.5" />
-                            فيديو تعريفي
+                            {ht('فيديو تعريفي', 'Einführungsvideo', 'Intro Video')}
                           </span>
                         </div>
                       </div>
@@ -603,7 +624,7 @@ export default function HomeView() {
                         className="w-full py-2.5 px-3 rounded-lg bg-secondary hover:bg-slate-900 hover:text-white dark:hover:bg-brand-orange dark:hover:text-white font-bold text-xs text-foreground flex items-center justify-center gap-2 border border-border/70 transition-all duration-150"
                       >
                         <Play className="w-3.5 h-3.5 fill-current" />
-                        <span>مشاهدة الفيديو وتفاصيل الدورة</span>
+                        <span>{ht('مشاهدة الفيديو وتفاصيل الدورة', 'Video & Kursdetails ansehen', 'Watch Video & Course Details')}</span>
                       </button>
                     </div>
                   </motion.div>
@@ -614,13 +635,13 @@ export default function HomeView() {
             <div className="text-center py-10 p-6 rounded-xl bg-secondary/40 border border-border">
               <BookOpen className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
               <p className="text-muted-foreground text-xs font-semibold mb-3">
-                لا توجد دورات مدرجة حالياً في المستوى {activeCourseLevel}.
+                {ht(`لا توجد دورات مدرجة حالياً في المستوى ${activeCourseLevel}.`, `Derzeit sind keine Kurse auf Stufe ${activeCourseLevel} verfügbar.`, `No courses currently available for level ${activeCourseLevel}.`)}
               </p>
               <button
                 onClick={() => setActiveCourseLevel('all')}
                 className="btn-bold-primary text-xs py-1.5 px-3"
               >
-                عرض كافة الدورات
+                {ht('عرض كافة الدورات', 'Alle Kurse anzeigen', 'View All Courses')}
               </button>
             </div>
           )}
@@ -634,10 +655,10 @@ export default function HomeView() {
         <div className="container-bold">
           <div className="text-center mb-8">
             <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground mb-2">
-              منظومة تعليمية متكاملة تضمن لك النجاح
+              {ht('منظومة تعليمية متكاملة تضمن لك النجاح', 'Ein integriertes Bildungssystem für Ihren Erfolg', 'An Integrated Educational System Ensuring Your Success')}
             </h2>
             <p className="text-muted-foreground text-xs sm:text-sm max-w-lg mx-auto leading-relaxed">
-              نجمع بين الدقة اللغوية الأكاديمية والتطبيق العملي الواقعي للوصول إلى الطلاقة واجتياز الامتحانات.
+              {ht('نجمع بين الدقة اللغوية الأكاديمية والتطبيق العملي الواقعي للوصول إلى الطلاقة واجتياز الامتحانات.', 'Wir verbinden akademische Sprachpräzision mit praxisnaher Anwendung für fließendes Deutsch und Prüfungserfolg.', 'We combine academic precision with practical application to achieve fluency and pass official exams.')}
             </p>
           </div>
 
@@ -645,23 +666,23 @@ export default function HomeView() {
             {[
               {
                 icon: BookMarked,
-                title: 'مناهج معتمدة دولياً',
-                desc: 'محتوى متطابق تماماً مع معايير Goethe و Telc و ÖSD الرسمية من A1 حتى C1.',
+                title: ht('مناهج معتمدة دولياً', 'International anerkannte Lehrpläne', 'Internationally Accredited Curricula'),
+                desc: ht('محتوى متطابق تماماً مع معايير Goethe و Telc و ÖSD الرسمية من A1 حتى C1.', 'Vollständig abgestimmt auf offizielle Goethe-, Telc- und ÖSD-Standards von A1 bis C1.', 'Fully aligned with official Goethe, Telc, and ÖSD standards from A1 to C1.'),
               },
               {
                 icon: Play,
-                title: 'فيديو تعريفي ودرس مجاني',
-                desc: 'شاهد الفيديو التمهيدي والدرس الأول لأي دورة مجاناً بالكامل قبل الاشتراك.',
+                title: ht('فيديو تعريفي ودرس مجاني', 'Einführungsvideo & Kostenlose Lektion', 'Intro Video & Free Lesson'),
+                desc: ht('شاهد الفيديو التمهيدي والدرس الأول لأي دورة مجاناً بالكامل قبل الاشتراك.', 'Sehen Sie das Einführungsvideo und die erste Lektion jedes Kurses kostenlos an.', 'Watch the introductory video and the first lesson of any course for free before enrolling.'),
               },
               {
                 icon: Clock,
-                title: 'مرونة دراسة 24/7',
-                desc: 'تعلم في الوقت الذي يناسبك ومن أي جهاز مع حفظ تلقائي لمستوى تقدمك.',
+                title: ht('مرونة دراسة 24/7', 'Flexibles Lernen 24/7', '24/7 Flexible Learning'),
+                desc: ht('تعلم في الوقت الذي يناسبك ومن أي جهاز مع حفظ تلقائي لمستوى تقدمك.', 'Lernen Sie flexibel auf jedem Gerät mit automatischer Fortschrittsspeicherung.', 'Learn at your own pace from any device with automatic progress saving.'),
               },
               {
                 icon: MessageCircle,
-                title: 'متابعة واستفسارات مباشرة',
-                desc: 'قنوات تواصل مباشرة مع الأستاذ عمر وهاب للإجابة عن أسئلتك وتصحيح التمارين.',
+                title: ht('متابعة واستفسارات مباشرة', 'Direkte Betreuung & Fragen', 'Direct Mentorship & Q&A'),
+                desc: ht('قنوات تواصل مباشرة مع الأستاذ عمر وهاب للإجابة عن أسئلتك وتصحيح التمارين.', 'Direkte Kommunikationskanäle mit Lehrer Omar Wahab zur Beantwortung von Fragen und Übungskorrekturen.', 'Direct communication channels with Teacher Omar Wahab to answer questions and correct exercises.'),
               },
             ].map((f, i) => (
               <motion.div
@@ -697,7 +718,7 @@ export default function HomeView() {
                 <div className="aspect-[4/5] w-full relative">
                   <Image
                     src="/images/teacher/omar-hero.png"
-                    alt="الأستاذ عمر وهاب"
+                    alt={ht('الأستاذ عمر وهاب', 'Lehrer Omar Wahab', 'Instructor Omar Wahab')}
                     fill
                     sizes="(max-width: 1024px) 100vw, 360px"
                     className="object-cover object-top"
@@ -707,11 +728,11 @@ export default function HomeView() {
                 </div>
                 <div className="absolute bottom-0 inset-x-0 p-3.5 bg-black/65 backdrop-blur-md flex items-center justify-between text-white text-xs">
                   <div>
-                    <p className="font-bold">الأستاذ عمر وهاب</p>
+                    <p className="font-bold">{ht('الأستاذ عمر وهاب', 'Lehrer Omar Wahab', 'Instructor Omar Wahab')}</p>
                     <p className="text-[11px] text-white/70 font-mono">Berlin & Damascus</p>
                   </div>
                   <span className="px-2.5 py-1 rounded-md bg-brand-orange text-white font-mono font-bold text-xs">
-                    {stats.years}+ سنوات خبرة
+                    {stats.years}+ {ht('سنوات خبرة', 'Jahre Erfahrung', 'Years Experience')}
                   </span>
                 </div>
               </div>
@@ -722,32 +743,36 @@ export default function HomeView() {
               {/* PART 9: Sophisticated "تعليم أكاديمي" Badge */}
               <div className="inline-flex items-center gap-1.5 rounded-md px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300/80 dark:border-slate-700 text-xs font-bold tracking-wide">
                 <GraduationCap className="w-3.5 h-3.5 text-brand-orange" />
-                <span>تعليم أكاديمي</span>
+                <span>{ht('تعليم أكاديمي', 'Akademische Ausbildung', 'Academic Education')}</span>
               </div>
 
               {/* PART 8: Formal Name */}
               <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-foreground leading-snug">
-                الأستاذ عمر وهاب
+                {ht('الأستاذ عمر وهاب', 'Lehrer Omar Wahab', 'Instructor Omar Wahab')}
               </h2>
 
               {/* PART 10: Prominently visible "خبرة 8 سنوات" figure */}
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-brand-orange/10 border border-brand-orange/25 text-brand-orange">
                 <Award className="w-4 h-4" />
                 <span className="text-sm font-black font-display tracking-wide">
-                  خبرة 8 سنوات في تدريس اللغة الألمانية والتحضير لامتحانات Goethe و Telc
+                  {ht('خبرة 8 سنوات في تدريس اللغة الألمانية والتحضير لامتحانات Goethe و Telc', '8 Jahre Erfahrung im Deutschunterricht und in der Vorbereitung auf Goethe- und Telc-Prüfungen', '8 years of experience teaching German and preparing for Goethe and Telc exams')}
                 </span>
               </div>
 
               <p className="text-muted-foreground leading-relaxed text-sm">
-                مدرس لغة ألمانية معتمد حاصل على بكالوريوس في اللغة الألمانية وآدابها (جامعة دمشق) وبكالوريوس في تكنولوجيا المعلومات والبرمجة (الجامعة الافتراضية السورية). يمنحه هذا التخصص المزدوج أسلوباً تحليلياً دقيقاً في تفكيك قواعد الألمانية الصعبة وتحويلها إلى معادلات منطقية ميسرة تضمن اجتياز الامتحانات الرسمية بأعلى الدرجات.
+                {ht(
+                  'مدرس لغة ألمانية معتمد حاصل على بكالوريوس في اللغة الألمانية وآدابها (جامعة دمشق) وبكالوريوس في تكنولوجيا المعلومات والبرمجة (الجامعة الافتراضية السورية). يمنحه هذا التخصص المزدوج أسلوباً تحليلياً دقيقاً في تفكيك قواعد الألمانية الصعبة وتحويلها إلى معادلات منطقية ميسرة تضمن اجتياز الامتحانات الرسمية بأعلى الدرجات.',
+                  'Zertifizierter Deutschlehrer mit Doppelabschluss: Bachelor in Deutscher Sprache und Literatur (Universität Damaskus) sowie Bachelor in Informationstechnologie und Softwareentwicklung (Syrische Virtuelle Universität). Diese Spezialisierung ermöglicht einen präzisen, analytischen Unterrichtsstil, der komplexe Grammatik in einfache, logische Regeln auflöst und Bestnoten sichert.',
+                  'Certified German instructor with a dual degree: Bachelor in German Language and Literature (Damascus University) and Bachelor in Information Technology and Programming (Syrian Virtual University). This unique combination provides an analytical teaching method that simplifies complex grammar into clear, logical rules.'
+                )}
               </p>
 
               <div className="grid grid-cols-2 gap-3 pt-1">
                 {[
-                  { icon: Award, label: 'خبرة تدريس متخصصة', val: '8+ سنوات' },
-                  { icon: Users, label: 'متابع وطالب مؤهل', val: '12,600+' },
-                  { icon: Target, label: 'نسبة النجاح الرسمية', val: '95%' },
-                  { icon: ShieldCheck, label: 'معايير الإطار الأوروبي', val: 'CEFR A1–C1' },
+                  { icon: Award, label: ht('خبرة تدريس متخصصة', 'Spezialisierte Lehrerfahrung', 'Specialized Teaching'), val: `${stats.years || 8}+ ` + ht('سنوات', 'Jahre', 'Years') },
+                  { icon: Users, label: ht('متابع وطالب مؤهل', 'Lernende & Follower', 'Qualified Students'), val: '12,600+' },
+                  { icon: Target, label: ht('نسبة النجاح الرسمية', 'Offizielle Erfolgsquote', 'Official Success Rate'), val: '95%' },
+                  { icon: ShieldCheck, label: ht('معايير الإطار الأوروبي', 'GER-Standards', 'CEFR Standards'), val: 'CEFR A1–C1' },
                 ].map((st, i) => (
                   <div key={i} className="p-2.5 rounded-xl border border-border/70 bg-card flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-brand-orange shrink-0">
@@ -766,7 +791,7 @@ export default function HomeView() {
                   onClick={() => navigate('about')}
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs hover:opacity-90 transition-opacity"
                 >
-                  <span>الملف الأكاديمي الكامل للأستاذ</span>
+                  <span>{ht('الملف الأكاديمي الكامل للأستاذ', 'Vollständiges akademisches Profil', 'Teacher Complete Profile')}</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </button>
                 <button
@@ -774,7 +799,7 @@ export default function HomeView() {
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border hover:bg-secondary text-foreground font-bold text-xs transition-colors"
                 >
                   <Calendar className="w-3.5 h-3.5 text-brand-orange" />
-                  <span>حجز استشارة أو درس أونلاين</span>
+                  <span>{ht('حجز استشارة أو درس أونلاين', 'Beratung oder Online-Stunde buchen', 'Book Consultation or Lesson')}</span>
                 </button>
               </div>
             </motion.div>
@@ -792,24 +817,38 @@ export default function HomeView() {
             <motion.div {...fade(0)} className="lg:col-span-7 space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 bg-white/10 border border-white/15 text-white text-xs font-bold">
                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span>مجتمع الأستاذ عمر وهاب</span>
+                <span>{ht('مجتمع الأستاذ عمر وهاب', 'Omar Wahabs Community', 'Omar Wahab Community')}</span>
                 <span className="opacity-40">|</span>
                 <span className="font-mono text-brand-orange">@omar_wahab20</span>
               </div>
 
               <h2 className="font-display text-2xl sm:text-3xl font-black text-white leading-tight">
-                أكثر من <span className="text-gradient">12,600 طالب ومتابع</span> يتعلمون الألمانية معنا
+                {ht('أكثر من', 'Über', 'Over')}{' '}
+                <span className="text-gradient">
+                  12,600 {ht('طالب ومتابع', 'Schüler & Follower', 'Students & Followers')}
+                </span>{' '}
+                {ht('يتعلمون الألمانية معنا', 'lernen mit uns Deutsch', 'learn German with us')}
               </h2>
 
               <p className="text-slate-300 text-sm leading-relaxed">
-                شروحات يومية وتدريبات على أهم أسئلة امتحانات Goethe و Telc وقواعد اللغة الألمانية عبر الحسابات الرسمية.
+                {ht(
+                  'شروحات يومية وتدريبات على أهم أسئلة امتحانات Goethe و Telc وقواعد اللغة الألمانية عبر الحسابات الرسمية.',
+                  'Tägliche Erklärungen und Übungen zu Goethe- und Telc-Prüfungen sowie deutscher Grammatik auf den offiziellen Kanälen.',
+                  'Daily explanations and exercises for Goethe and Telc exams as well as German grammar across official channels.'
+                )}
               </p>
 
               <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300 space-y-1">
                 <p className="font-mono font-bold text-emerald-400" dir="ltr">
                   Deutsch lernen mit Omar. Überall mit dir 🇩🇪
                 </p>
-                <p>خريج قسم اللغة الألمانية • دورات تفاعلية ومتابعة مباشرة • رقم التواصل: +963 934 090 166</p>
+                <p>
+                  {ht(
+                    'خريج قسم اللغة الألمانية • دورات تفاعلية ومتابعة مباشرة • رقم التواصل: +963 934 090 166',
+                    'Germanistik-Absolvent • Interaktive Kurse & direkte Betreuung • Kontakt: +963 934 090 166',
+                    'German Studies Graduate • Interactive Courses & Direct Mentorship • Contact: +963 934 090 166'
+                  )}
+                </p>
               </div>
 
               {/* PART 12: HARMONIZED SOCIAL / CONTACT BUTTONS (Consistent Height, Radius, Style) */}
@@ -821,7 +860,7 @@ export default function HomeView() {
                   className="h-11 px-5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs flex items-center gap-2 transition-all"
                 >
                   <Play className="w-3.5 h-3.5 fill-current text-brand-orange" />
-                  <span>تابع الحساب عبر التيك توك</span>
+                  <span>{ht('تابع الحساب عبر التيك توك', 'Auf TikTok folgen', 'Follow on TikTok')}</span>
                   <ArrowUpRight className="w-3.5 h-3.5 opacity-60" />
                 </a>
 
@@ -832,7 +871,7 @@ export default function HomeView() {
                   className="h-11 px-5 rounded-xl bg-emerald-600/90 hover:bg-emerald-600 border border-emerald-500/30 text-white font-bold text-xs flex items-center gap-2 transition-all shadow-xs"
                 >
                   <MessageCircle className="w-3.5 h-3.5" />
-                  <span>تواصل عبر الواتساب</span>
+                  <span>{ht('تواصل عبر الواتساب', 'WhatsApp-Kontakt', 'Chat on WhatsApp')}</span>
                 </a>
               </div>
             </motion.div>
@@ -848,7 +887,7 @@ export default function HomeView() {
                   <div className="relative aspect-[9/19] w-full rounded-[1.8rem] overflow-hidden bg-black border border-slate-800">
                     <Image
                       src="/images/teacher/omar-social-proof.png"
-                      alt="حساب الأستاذ عمر وهاب الرسمي"
+                      alt={ht('حساب الأستاذ عمر وهاب الرسمي', 'Offizielles Profil von Lehrer Omar Wahab', 'Official Profile of Teacher Omar Wahab')}
                       fill
                       sizes="280px"
                       className="object-cover object-top"
@@ -856,7 +895,7 @@ export default function HomeView() {
                     <div className="absolute bottom-0 inset-x-0 p-2.5 bg-gradient-to-t from-black via-black/85 to-transparent text-center">
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-brand-orange text-white text-[10px] font-bold">
                         <Star className="w-2.5 h-2.5 fill-current" />
-                        12,600+ متابع حقيقي
+                        12,600+ {ht('متابع حقيقي', 'Echte Follower', 'Real Followers')}
                       </span>
                     </div>
                   </div>
@@ -878,10 +917,10 @@ export default function HomeView() {
             <div className="mb-6 flex items-center justify-between">
               <div>
                 <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground">
-                  مقاطع تعليمية سريعة
+                  {ht('مقاطع تعليمية سريعة', 'Kurze Lernvideos & Reels', 'Educational Shorts & Reels')}
                 </h2>
                 <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-                  شروحات مقتضبة لأهم الكلمات والمصطلحات الألمانية
+                  {ht('شروحات مقتضبة لأهم الكلمات والمصطلحات الألمانية', 'Kompakte Erklärungen zu wichtigen deutschen Ausdrücken', 'Concise explanations of essential German words and expressions')}
                 </p>
               </div>
             </div>
@@ -919,7 +958,7 @@ export default function HomeView() {
                     </h3>
                     {formatDuration(reel.duration) && (
                       <p className="text-[10px] font-medium text-white/70">
-                        {formatDuration(reel.duration)} دقيقة
+                        {formatDuration(reel.duration)} {ht('دقيقة', 'Min.', 'min')}
                       </p>
                     )}
                   </div>
@@ -949,7 +988,7 @@ export default function HomeView() {
             >
               <button
                 onClick={() => setActiveReel(null)}
-                aria-label="إغلاق"
+                aria-label={ht('إغلاق', 'Schließen', 'Close')}
                 className="absolute top-3 end-3 z-20 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black transition-colors"
               >
                 <X className="w-4 h-4" />
@@ -994,10 +1033,10 @@ export default function HomeView() {
           <div className="container-bold">
             <div className="mb-6">
               <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground">
-                آراء وقصص نجاح الطلاب
+                {ht('آراء وقصص نجاح الطلاب', 'Erfahrungsberichte & Erfolgsgeschichten', 'Student Reviews & Success Stories')}
               </h2>
               <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-                تجارب حقيقية لطلاب اجتازوا امتحانات Goethe و Telc مع الأستاذ عمر وهاب
+                {ht('تجارب حقيقية لطلاب اجتازوا امتحانات Goethe و Telc مع الأستاذ عمر وهاب', 'Echte Erfahrungen von Lernenden, die Goethe- und Telc-Prüfungen bestanden haben', 'Real experiences from students who passed Goethe and Telc exams with Teacher Omar')}
               </p>
             </div>
 
@@ -1028,7 +1067,7 @@ export default function HomeView() {
                         {getTestimonialField(testi as unknown as Record<string, unknown>, 'name')}
                       </p>
                       <p className="text-[10px] text-muted-foreground">
-                        {getTestimonialField(testi as unknown as Record<string, unknown>, 'role') || 'طالب معتمد'}
+                        {getTestimonialField(testi as unknown as Record<string, unknown>, 'role') || ht('طالب معتمد', 'Zertifizierter Schüler', 'Verified Student')}
                       </p>
                     </div>
                   </div>
@@ -1048,17 +1087,17 @@ export default function HomeView() {
             <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
               <div>
                 <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground">
-                  أحدث المقالات التعليمية
+                  {ht('أحدث المقالات التعليمية', 'Neueste Bildungsartikel & Tipps', 'Latest Educational Articles & Tips')}
                 </h2>
                 <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-                  إرشادات لغوية ونصائح لاجتياز امتحانات المعاهد الرسمية
+                  {ht('إرشادات لغوية ونصائح لاجتياز امتحانات المعاهد الرسمية', 'Sprachtipps und Ratschläge für offizielle Prüfungen', 'Language tips and guidance for passing official exams')}
                 </p>
               </div>
               <button
                 onClick={() => navigate('posts')}
                 className="text-xs font-bold text-brand-orange hover:text-brand-orange-dark flex items-center gap-1 transition-colors"
               >
-                <span>عرض كافة المقالات</span>
+                <span>{ht('عرض كافة المقالات', 'Alle Artikel anzeigen', 'View All Articles')}</span>
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -1090,9 +1129,9 @@ export default function HomeView() {
                       </p>
                     </div>
                     <div className="pt-2.5 border-t border-border/60 flex items-center justify-between text-[10px] text-muted-foreground">
-                      <span>{new Date(post.createdAt).toLocaleDateString('ar-EG')}</span>
+                      <span>{new Date(post.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : locale === 'de' ? 'de-DE' : 'en-US')}</span>
                       <span className="font-bold text-brand-orange flex items-center gap-0.5">
-                        اقرأ المزيد <ArrowUpRight className="w-3 h-3" />
+                        {ht('اقرأ المزيد', 'Weiterlesen', 'Read More')} <ArrowUpRight className="w-3 h-3" />
                       </span>
                     </div>
                   </div>
@@ -1125,20 +1164,20 @@ export default function HomeView() {
 
             <div className="relative z-10 max-w-xl mx-auto space-y-3">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white/90 border border-white/15 text-xs font-semibold backdrop-blur-md shadow-xs">
-                ابدأ رحلتك الآن
+                {ht('ابدأ رحلتك الآن', 'Starten Sie Ihre Reise', 'Start Your Journey Now')}
               </span>
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-md">
-                جاهز لإتقان اللغة الألمانية؟
+                {ht('جاهز لإتقان اللغة الألمانية؟', 'Bereit, Deutsch zu meistern?', 'Ready to Master German?')}
               </h2>
               <p className="text-xs sm:text-sm text-white/85 leading-relaxed max-w-md mx-auto">
-                اختر مسارك التعليمي، وشاهد الدرس الأول مجاناً وابدأ بثقة.
+                {ht('اختر مسارك التعليمي، وشاهد الدرس الأول مجاناً وابدأ بثقة.', 'Wählen Sie Ihren Lernpfad, sehen Sie die erste Lektion kostenlos und starten Sie mit Zuversicht.', 'Choose your learning path, watch the first lesson for free, and start with confidence.')}
               </p>
               <div className="pt-2 flex items-center justify-center gap-3 flex-wrap">
                 <button
                   onClick={() => navigate('courses')}
                   className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-orange to-brand-red text-white text-xs sm:text-sm font-bold shadow-lg shadow-brand-orange/30 hover:shadow-brand-orange/50 hover:-translate-y-0.5 active:scale-[0.98] transition-all flex items-center gap-2"
                 >
-                  <span>تصفح كافة الدورات</span>
+                  <span>{ht('تصفح كافة الدورات', 'Alle Kurse anzeigen', 'Browse All Courses')}</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </button>
                 <button
@@ -1146,7 +1185,7 @@ export default function HomeView() {
                   className="px-5 py-2.5 rounded-xl border border-white/25 bg-black/30 backdrop-blur-md hover:bg-white/15 text-white text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5"
                 >
                   <Calendar className="w-3.5 h-3.5 text-brand-orange" />
-                  <span>حجز درس أونلاين</span>
+                  <span>{ht('حجز درس أونلاين', 'Online-Stunde buchen', 'Book Online Lesson')}</span>
                 </button>
               </div>
             </div>
