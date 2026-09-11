@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mit-omar-admin",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2024-09-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://sdfyfzefoshdbctzkyrs.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkZnlmemVmb3NoZGJjdHpreXJzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjU0MDMwNywiZXhwIjoyMTAyMTE2MzA3fQ.KPphzngGRqkIxSfoqwoIv2JQb3bYdbNI7aQjH9PqXog",
+    "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkZnlmemVmb3NoZGJjdHpreXJzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjU0MDMwNywiZXhwIjoyMTAyMTE2MzA3fQ.KPphzngGRqkIxSfoqwoIv2JQb3bYdbNI7aQjH9PqXog",
+    "NEXT_PUBLIC_VAPID_PUBLIC_KEY": "BEhB4nqDXJePpu18toakR2Ir6e_m8cNfKJPesfZvLHZqB_FvuD1Q2vxzcktfl82soxaPZ8LUNpCTWAuGViEDPlQ",
+    "VAPID_PRIVATE_KEY": "2AKQQKbGW0VBFK7w6ITSGURGMLFOa6TCbMsU5PzU4Bk",
+    "R2_ACCOUNT_ID": "607a1dc482665aa8e967d6e58f506e12",
+    "R2_ACCESS_KEY_ID": "d3c6d68cdcfbf57696b7db5adbc10625",
+    "R2_SECRET_ACCESS_KEY": "f38b9eb72656d535df46ecfbe68ce015de6f0ce94b7a45f74601dad2a62d1fbe",
+    "R2_BUCKET": "omar",
+    "AUTH_TOKEN_SECRET": "dmo-secret-auth-key-2026",
+    "VIDEO_TOKEN_SECRET": "dmo-video-token-secret-2026",
+    "WATERMARK_SECRET": "dmo-watermark-secret-2026"
+  }
+}

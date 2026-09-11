@@ -4,31 +4,82 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
+    const studentUserId = decodeUserId(req);
     const { studentName, phoneNumber, level, preferredDate } = await req.json();
 
     // Validate required fields
     if (!studentName || !phoneNumber || !level || !preferredDate) {
-      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
+      return NextResponse.json({ error: 'جميع الحقول مطلوبة' }, { status: 400 });
     }
 
-    // Validate phone number format (basic check)
+    // Validate phone number format
     if (!/^\+?[0-9\s-]{8,}$/.test(phoneNumber)) {
-      return NextResponse.json({ error: 'Invalid phone number format' }, { status: 400 });
+      return NextResponse.json({ error: 'رقم الهاتف غير صالح' }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const { data: booking, error } = await supabaseAdmin
       .from('online_lesson_bookings')
-      .insert({ studentName, phoneNumber, level, preferredDate, teacherName: 'الأستاذ Omar', status: 'pending' });
+      .insert({
+        studentName,
+        phoneNumber,
+        level,
+        preferredDate,
+        teacherName: 'الأستاذ Omar',
+        status: 'pending',
+        userId: studentUserId || null,
+        createdAt: new Date().toISOString(),
+      })
+      .select()
+      .single();
 
     if (error) {
       console.error('Booking creation error:', error);
-      return NextResponse.json({ error: 'Failed to create booking' }, { status: 500 });
+      return NextResponse.json({ error: 'فشل في حفظ طلب الحجز' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, status: 'pending' });
+    // 1. Notify Admin in Dashboard
+    try {
+      await supabaseAdmin.from('notifications').insert({
+        titleAr: `حجز درس أونلاين جديد: ${studentName}`,
+        titleDe: `Neue Online-Buchung: ${studentName}`,
+        titleEn: `New online lesson booking: ${studentName}`,
+        messageAr: `المستوى: ${level} | التاريخ المفضل: ${preferredDate}\nالهاتف: ${phoneNumber}`,
+        messageDe: `Niveau: ${level} | Datum: ${preferredDate}\nTel: ${phoneNumber}`,
+        messageEn: `Level: ${level} | Date: ${preferredDate}\nPhone: ${phoneNumber}`,
+        type: 'booking',
+        targetType: 'admin',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (notifErr) {
+      console.error('Failed to create admin booking notification:', notifErr);
+    }
+
+    // 2. Notify Student if logged in
+    if (studentUserId) {
+      try {
+        await supabaseAdmin.from('notifications').insert({
+          userId: studentUserId,
+          titleAr: `تم استلام طلب حجز الدرس بنجاح`,
+          titleDe: `Buchungsanfrage erfolgreich erhalten`,
+          titleEn: `Booking request received`,
+          messageAr: `مرحباً ${studentName}، تم استلام طلب حجز درس المستوى ${level} بتاريخ ${preferredDate}. سنتواصل معك لتأكيد الموعد.`,
+          messageDe: `Hallo ${studentName}, Ihre Buchung für ${level} wurde empfangen.`,
+          messageEn: `Hello ${studentName}, your booking for ${level} has been received.`,
+          type: 'booking',
+          targetType: 'user',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        });
+      } catch (studentNotifErr) {
+        console.error('Failed to notify student:', studentNotifErr);
+      }
+    }
+
+    return NextResponse.json({ success: true, status: 'pending', booking });
   } catch (error) {
     console.error('Online booking error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'فشل في إنشاء الحجز' }, { status: 500 });
   }
 }
 
@@ -82,7 +133,6 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Booking ID and status are required' }, { status: 400 });
     }
 
-    // Validate status value
     const validStatuses = ['pending', 'confirmed', 'rejected', 'completed', 'cancelled'];
     if (!validStatuses.includes(status)) {
       return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });

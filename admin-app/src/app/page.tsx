@@ -20,6 +20,9 @@ export default function AdminPage() {
           token: savedToken,
           user: JSON.parse(savedUser),
         });
+        if (typeof document !== 'undefined') {
+          document.cookie = `dmo-token=${encodeURIComponent(savedToken)}; path=/; max-age=${30 * 86400}; SameSite=Lax`;
+        }
       } catch {
         localStorage.removeItem('dmo-token');
         localStorage.removeItem('dmo-user');

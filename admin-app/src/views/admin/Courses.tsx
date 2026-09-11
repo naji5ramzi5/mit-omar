@@ -2,13 +2,15 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { toast } from './toast';
+import VideoPreviewModal from '@/components/VideoPreviewModal';
 import {
-  Plus, Pencil, Trash2, GraduationCap, ArrowRight, Video, Clock, Lock, BookOpen, UploadCloud, Shield,
+  Plus, Pencil, Trash2, GraduationCap, ArrowRight, Video, Clock, Lock, BookOpen, UploadCloud, Shield, Eye,
 } from 'lucide-react';
 import {
   PrimaryButton, GhostButton, Modal, ConfirmDialog, SectionHeader, EmptyState,
   ListLoading, LevelBadge, Toggle, LangInput, ImageField, FormRow, inputClass,
 } from './ui';
+import { ImageUploader, VideoUploader, resolveAdminMediaUrl } from './media-uploaders';
 import { adminFetch, fieldOf, useAdminData } from './api';
 import { Course, Lesson, LEVELS } from './types';
 
@@ -34,7 +36,15 @@ export default function CoursesSection({
   const [saving, setSaving] = useState(false);
 
   const openCreate = () => { setEditing(null); setFormOpen(true); };
-  const openEdit = (c: Course) => { setEditing(c); setFormOpen(true); };
+  const openEdit = async (c: Course) => {
+    try {
+      const res = await adminFetch<{ course: any }>(`/api/admin/courses/${c.id}`, token);
+      setEditing(res.course || c);
+    } catch {
+      setEditing(c);
+    }
+    setFormOpen(true);
+  };
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -67,18 +77,26 @@ export default function CoursesSection({
         <div className="space-y-3">
           {courses.map((c) => (
             <div key={c.id} className="card-bold p-5 flex items-center justify-between gap-4 border-2 hover:border-brand-orange/30 transition-all">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <LevelBadge level={c.level} />
-                  <span className={`w-2.5 h-2.5 rounded-full ${c.isActive ? 'bg-green-500' : 'bg-gray-300'}`} />
-                  <span className="text-[11px] font-bold text-muted-foreground">
-                    {c.isActive ? 'منشورة' : 'مخفية'}
-                  </span>
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                {c.imageUrl && (
+                  <div className="w-16 h-12 rounded-xl overflow-hidden bg-secondary shrink-0 border border-border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={resolveAdminMediaUrl(c.imageUrl)} alt="" className="w-full h-full object-cover" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <LevelBadge level={c.level} />
+                    <span className={`w-2.5 h-2.5 rounded-full ${c.isActive ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <span className="text-[11px] font-bold text-muted-foreground">
+                      {c.isActive ? 'منشورة' : 'مخفية'}
+                    </span>
+                  </div>
+                  <p className="text-sm font-bold text-foreground truncate">{fieldOf(c as any, 'title', locale)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {c._count?.lessons || 0} درس · {c._count?.enrollments || 0} مشترك
+                  </p>
                 </div>
-                <p className="text-sm font-bold text-foreground truncate">{fieldOf(c as any, 'title', locale)}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {c._count?.lessons || 0} درس · {c._count?.enrollments || 0} مشترك
-                </p>
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={() => setManaging(c)} title="إدارة الدروس"
@@ -99,10 +117,11 @@ export default function CoursesSection({
         </div>
       )}
 
-      <Modal open={formOpen} onClose={() => setFormOpen(false)} title={editing ? 'تعديل الدورة' : 'إضافة دورة'}>
+      <Modal open={formOpen} onClose={() => setFormOpen(false)} title={editing ? 'تعديل الدورة' : 'إضافة دورة'} size="lg">
         <CourseForm
           course={editing}
           locale={locale}
+          token={token}
           saving={saving}
           onSave={async (data) => {
             setSaving(true);
@@ -124,49 +143,130 @@ export default function CoursesSection({
   );
 }
 
-function CourseForm({ course, locale, saving, onSave, onClose }: {
+function CourseForm({ course, locale, token, saving, onSave, onClose }: {
   course: Course | null;
   locale: string;
+  token: string;
   saving: boolean;
   onSave: (data: any) => void;
   onClose: () => void;
 }) {
+  const [activeTab, setActiveTab] = useState<'info' | 'intro'>('info');
   const [form, setForm] = useState<any>(() => ({
     ...emptyCourse,
     ...(course || {}),
     imageUrl: course?.imageUrl ?? null,
+    introVideoUrl: (course as any)?.introVideo?.videoUrl ?? null,
+    introVideoDuration: (course as any)?.introVideo?.duration ?? 0,
+    isIntroPublished: (course as any)?.introVideo?.isPublished ?? true,
   }));
 
   return (
-    <form
-      onSubmit={(e) => { e.preventDefault(); onSave(form); }}
-      className="space-y-5"
-    >
-      <LangInput label="عنوان الدورة" form={form} field="title" onChange={setForm} required />
-      <LangInput label="الوصف" form={form} field="description" onChange={setForm} textarea rows={2} />
-
-      <div className="grid grid-cols-2 gap-4">
-        <FormRow label="المستوى">
-          <select value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className={inputClass}>
-            {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </FormRow>
-        <FormRow label="الترتيب">
-          <input type="number" value={form.order} onChange={(e) => setForm({ ...form, order: parseInt(e.target.value) || 0 })} className={inputClass} />
-        </FormRow>
+    <div className="space-y-5">
+      {/* Navigation tabs */}
+      <div className="flex border-b border-border gap-2 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('info')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeTab === 'info'
+              ? 'bg-brand-orange text-white shadow-sm'
+              : 'text-muted-foreground hover:bg-secondary'
+          }`}
+        >
+          بيانات الدورة الأساسية
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('intro')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            activeTab === 'intro'
+              ? 'bg-brand-orange text-white shadow-sm'
+              : 'text-muted-foreground hover:bg-secondary'
+          }`}
+        >
+          <Video className="w-3.5 h-3.5" />
+          الفيديو التعريفي المجاني
+          {form.introVideoUrl && <span className="w-2 h-2 rounded-full bg-emerald-400" />}
+        </button>
       </div>
 
-      <FormRow label="صورة الدورة">
-        <ImageField value={form.imageUrl} onChange={(v) => setForm({ ...form, imageUrl: v })} placeholder="رابط صورة الغلاف" />
-      </FormRow>
+      <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} className="space-y-5">
+        {activeTab === 'info' && (
+          <div className="space-y-5">
+            <LangInput label="عنوان الدورة" form={form} field="title" onChange={setForm} required />
+            <LangInput label="الوصف" form={form} field="description" onChange={setForm} textarea rows={2} />
 
-      <Toggle checked={form.isActive} onChange={() => setForm({ ...form, isActive: !form.isActive })} labels={['دورة منشورة', 'دورة مخفية']} />
+            <div className="grid grid-cols-2 gap-4">
+              <FormRow label="المستوى">
+                <select value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className={inputClass}>
+                  {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </FormRow>
+              <FormRow label="الترتيب">
+                <input type="number" value={form.order} onChange={(e) => setForm({ ...form, order: parseInt(e.target.value) || 0 })} className={inputClass} />
+              </FormRow>
+            </div>
 
-      <div className="flex gap-3 justify-end pt-2">
-        <GhostButton onClick={onClose} disabled={saving}>إلغاء</GhostButton>
-        <PrimaryButton type="submit" disabled={saving}>{saving ? 'جارٍ الحفظ…' : 'حفظ'}</PrimaryButton>
-      </div>
-    </form>
+            <FormRow label="صورة غلاف الدورة">
+              <ImageUploader
+                value={form.imageUrl}
+                onChange={(url) => setForm({ ...form, imageUrl: url })}
+                placeholder="انقر لرفع غلاف الدورة من الكمبيوتر أو اسحبه هنا"
+                aspectRatio="16/9"
+                token={token}
+              />
+            </FormRow>
+
+            <Toggle checked={form.isActive} onChange={() => setForm({ ...form, isActive: !form.isActive })} labels={['دورة منشورة', 'دورة مخفية']} />
+          </div>
+        )}
+
+        {activeTab === 'intro' && (
+          <div className="space-y-5">
+            <div className="p-4 rounded-2xl bg-brand-orange/5 border border-brand-orange/20">
+              <h4 className="text-sm font-bold text-foreground mb-1">الفيديو التعريفي المجاني للدورة (Course Trailer)</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                هذا الفيديو متاح مجاناً لكافة زوار المنصة في صفحة تفاصيل الدورة، لمشاهدة مقدمة الدورة وتفاصيلها دون الحاجة لأي كود تفعيل.
+              </p>
+            </div>
+
+            <FormRow label="فيديو تعريفي للدورة">
+              <VideoUploader
+                value={form.introVideoUrl}
+                onChange={(url, meta) => {
+                  setForm((prev: any) => ({
+                    ...prev,
+                    introVideoUrl: url,
+                    introVideoDuration: meta?.duration ? Math.round(meta.duration * 60) : prev.introVideoDuration,
+                  }));
+                }}
+                placeholder="انقر لرفع الفيديو التعريفي من الكمبيوتر أو اسحبه هنا"
+                isReel={false}
+                token={token}
+              />
+            </FormRow>
+
+            <div className="p-4 rounded-2xl bg-secondary/50 border border-border flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-foreground">حالة ظهور الفيديو التعريفي</p>
+                <p className="text-[11px] text-muted-foreground">عند التفعيل، يظهر زر "مشاهدة الفيديو التعريفي" في صفحة الدورة للزوار</p>
+              </div>
+              <Toggle
+                checked={form.isIntroPublished ?? true}
+                onChange={() => setForm({ ...form, isIntroPublished: !(form.isIntroPublished ?? true) })}
+                labels={['منشور للزوار', 'مخفي']}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-3 justify-end pt-3 border-t border-border">
+          <GhostButton onClick={onClose} disabled={saving}>إلغاء</GhostButton>
+          <PrimaryButton type="submit" disabled={saving}>{saving ? 'جارٍ الحفظ…' : 'حفظ الدورة'}</PrimaryButton>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -177,12 +277,17 @@ function LessonsManager({ course, token, locale, onBack }: {
   locale: string;
   onBack: () => void;
 }) {
-  const [lessons, setLessons] = useState<Lesson[]>([]);
+const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Lesson | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewLessonId, setPreviewLessonId] = useState<string | null>(null);
+  const [previewToken, setPreviewToken] = useState<string | undefined>();
+  const [previewUserName, setPreviewUserName] = useState<string>('');
+  const [showPreview, setShowPreview] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -197,7 +302,7 @@ function LessonsManager({ course, token, locale, onBack }: {
     if (!deleteId) return;
     setSaving(true);
     try {
-      await adminFetch(`/api/admin/courses/${course.id}/lessons/${deleteId}`, token, { method: 'DELETE' });
+      await adminFetch(`/api/admin/courses/${course.id}/lessons?id=${deleteId}`, token, { method: 'DELETE' });
       toast.success('تم حذف الدرس');
       setDeleteId(null);
       load();
@@ -228,21 +333,32 @@ function LessonsManager({ course, token, locale, onBack }: {
                   <p className="text-sm font-bold text-foreground truncate">{fieldOf(l as any, 'title', locale)}</p>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{l.duration} د</span>
-                    {l.isFree && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 font-bold">مجاني</span>}
+                    {l.isFree ? (
+                      <span className="text-[11px] px-2.5 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-black border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+                        🟢 الدرس المجاني للدورة
+                      </span>
+                    ) : (
+                      <span className="text-[11px] px-2 py-0.5 rounded-lg bg-secondary text-muted-foreground font-semibold flex items-center gap-1">
+                        🔒 مدفوع
+                      </span>
+                    )}
                     {l.videoUrl && <span className="text-xs text-muted-foreground truncate max-w-[140px] flex items-center gap-1"><Video className="w-3 h-3" />{l.videoUrl}</span>}
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <button onClick={() => { setEditing(l); setFormOpen(true); }} className="p-2.5 text-muted-foreground hover:text-brand-orange rounded-xl hover:bg-brand-orange/5 transition-all"><Pencil className="w-4 h-4" /></button>
-                <button onClick={() => setDeleteId(l.id)} className="p-2.5 text-muted-foreground hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-950 transition-all"><Trash2 className="w-4 h-4" /></button>
-              </div>
+<div className="flex items-center gap-1">
+                  <button onClick={() => setShowPreview(l.id)} className="p-2.5 text-muted-foreground hover:text-brand-orange rounded-xl hover:bg-brand-orange/5 transition-all" title="معاينة الفيديو">
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => setEditing(l)} className="p-2.5 text-muted-foreground hover:text-brand-orange rounded-xl hover:bg-brand-orange/5 transition-all"><Pencil className="w-4 h-4" /></button>
+                  <button onClick={() => setDeleteId(l.id)} className="p-2.5 text-muted-foreground hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-950 transition-all"><Trash2 className="w-4 h-4" /></button>
+                </div>
             </div>
           ))}
         </div>
       )}
 
-      <Modal open={formOpen} onClose={() => setFormOpen(false)} title={editing ? 'تعديل الدرس' : 'إضافة دررس'}>
+      <Modal open={formOpen} onClose={() => setFormOpen(false)} title={editing ? 'تعديل الدرس' : 'إضافة درس'}>
         <LessonForm
           lesson={editing}
           locale={locale}
@@ -251,8 +367,11 @@ function LessonsManager({ course, token, locale, onBack }: {
           onSave={async (data) => {
             setSaving(true);
             try {
-              const url = editing ? `/api/admin/courses/${course.id}/lessons/${editing.id}` : `/api/admin/courses/${course.id}/lessons`;
-              await adminFetch(url, token, { method: editing ? 'PUT' : 'POST', body: JSON.stringify(data) });
+              const url = `/api/admin/courses/${course.id}/lessons`;
+              await adminFetch(url, token, {
+                method: editing ? 'PUT' : 'POST',
+                body: JSON.stringify(editing ? { ...data, lessonId: editing.id } : data),
+              });
               toast.success(editing ? 'تم تحديث الدرس' : 'تمت إضافة الدرس');
               setFormOpen(false);
               load();
@@ -264,6 +383,20 @@ function LessonsManager({ course, token, locale, onBack }: {
       </Modal>
 
       <ConfirmDialog open={!!deleteId} message="هل أنت متأكد من حذف هذا الدرس؟" onConfirm={handleDelete} onCancel={() => setDeleteId(null)} loading={saving} />
+
+      {/* Professional Video Preview Modal */}
+      <VideoPreviewModal
+        lessonId={previewLessonId || ''}
+        token={token}
+        userName={previewUserName}
+        userId={previewLessonId ? 'admin_' + previewLessonId : undefined}
+        onClose={() => {
+          setShowPreviewModal(false);
+          setPreviewLessonId(null);
+          setPreviewToken(undefined);
+          setPreviewUserName('');
+        }}
+      />
     </div>
   );
 }
@@ -283,94 +416,48 @@ function LessonForm({ lesson, locale, saving, onSave, onClose, token }: {
   token: string;
 }) {
   const [form, setForm] = useState<any>(() => ({ ...emptyLesson, ...(lesson || {}) }));
-  const [uploading, setUploading] = useState(false);
-  const [uploadPct, setUploadPct] = useState(0);
-  const fileRef = useRef<HTMLInputElement | null>(null);
-
-  const uploadToR2 = async (file: File) => {
-    setUploading(true);
-    setUploadPct(0);
-    try {
-      const res = await fetch('/api/admin/r2/upload-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ filename: file.name, contentType: file.type }),
-      });
-      if (!res.ok) throw new Error('upload-url failed');
-      const { uploadUrl, key } = await res.json();
-
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('PUT', uploadUrl);
-        xhr.setRequestHeader('Content-Type', file.type);
-        xhr.upload.onprogress = (e) => e.lengthComputable && setUploadPct(Math.round((e.loaded / e.total) * 100));
-        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`upload failed ${xhr.status}`)));
-        xhr.onerror = () => reject(new Error('network error'));
-        xhr.send(file);
-      });
-
-      setForm((f: any) => ({ ...f, videoUrl: key }));
-      toast.success('تم رفع الفيديو بنجاح — سيُشغَّل برابط محمي');
-    } catch (e: any) {
-      toast.error(e.message || 'فشل رفع الفيديو');
-    } finally {
-      setUploading(false);
-      setUploadPct(0);
-    }
-  };
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} className="space-y-5">
       <LangInput label="عنوان الدرس" form={form} field="title" onChange={setForm} required />
       <LangInput label="الوصف" form={form} field="description" onChange={setForm} textarea rows={2} />
-      <FormRow label="الفيديو — رفع إلى Cloudflare R2 (محمي) أو رابط خارجي">
-        <input
-          type="text"
-          value={form.videoUrl || ''}
-          onChange={(e) => setForm({ ...form, videoUrl: e.target.value || null })}
-          placeholder="r2:videos/…  أو  https://…"
-          className={inputClass}
-          dir="ltr"
+      
+      <FormRow label="فيديو الدرس">
+        <VideoUploader
+          value={form.videoUrl}
+          onChange={(url, meta) => {
+            setForm((prev: any) => ({
+              ...prev,
+              videoUrl: url,
+              duration: meta?.duration ? meta.duration : prev.duration,
+            }));
+          }}
+          placeholder="انقر لرفع فيديو الدرس من الكمبيوتر أو اسحبه هنا"
+          isReel={false}
+          token={token}
         />
-        <div className="flex items-center gap-3 mt-2">
-          <input
-            ref={fileRef}
-            type="file"
-            accept="video/mp4,video/webm,video/ogg,video/quicktime"
-            className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadToR2(f); e.target.value = ''; }}
-          />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading || saving}
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-brand-orange to-brand-red text-white disabled:opacity-50"
-          >
-            <UploadCloud className="w-4 h-4" />
-            {uploading ? `جارٍ الرفع… ${uploadPct}%` : 'رفع فيديو من الكمبيوتر'}
-          </button>
-          {form.videoUrl?.startsWith('r2:') && (
-            <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
-              <Shield className="w-3.5 h-3.5" /> رابط محمي (R2)
-            </span>
-          )}
-        </div>
-        {uploading && (
-          <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden mt-2">
-            <div className="h-full bg-gradient-to-r from-brand-orange to-brand-red transition-all" style={{ width: `${uploadPct}%` }} />
-          </div>
-        )}
       </FormRow>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <FormRow label="المدة (دقائق)">
           <input type="number" value={form.duration} onChange={(e) => setForm({ ...form, duration: parseInt(e.target.value) || 0 })} className={inputClass} />
         </FormRow>
         <FormRow label="الترتيب">
           <input type="number" value={form.order} onChange={(e) => setForm({ ...form, order: parseInt(e.target.value) || 0 })} className={inputClass} />
         </FormRow>
-        <div className="flex items-end">
-          <Toggle checked={form.isFree} onChange={() => setForm({ ...form, isFree: !form.isFree })} labels={['مجاني', 'مدفوع']} />
+      </div>
+
+      <div className="p-4 rounded-2xl bg-secondary/50 border border-border flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold text-foreground">نوع الدرس (سياسة الوصول)</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            تدعم المنصة <strong>درساً مجانياً واحداً فقط</strong> لكل دورة. عند تعيين هذا الدرس كمجاني، سيتم قفل الدرس المجاني السابق تلقائياً.
+          </p>
         </div>
+        <Toggle
+          checked={form.isFree}
+          onChange={() => setForm({ ...form, isFree: !form.isFree })}
+          labels={['🟢 درس مجاني', '🔒 درس مدفوع']}
+        />
       </div>
       <div className="flex gap-3 justify-end pt-2">
         <GhostButton onClick={onClose} disabled={saving}>إلغاء</GhostButton>

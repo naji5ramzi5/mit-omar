@@ -13,6 +13,7 @@ export type AppView =
   | 'register'
   | 'activate'
   | 'student'
+  | 'profile'
   | 'video-lesson'
   | 'notifications'
   | 'exams'
@@ -35,13 +36,41 @@ interface AppState {
   isMobileMenuOpen: boolean;
   isNotificationOpen: boolean;
 
-  navigate: (view: AppView, params?: Record<string, string>) => void;
+  navigate: (view: AppView, params?: Record<string, string>, replace?: boolean) => void;
   goBack: () => void;
   setLocale: (locale: Locale) => void;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   setMobileMenuOpen: (open: boolean) => void;
   setNotificationOpen: (open: boolean) => void;
+}
+
+export function viewToHash(view: AppView, params: Record<string, string> = {}): string {
+  if (view === 'home') return '#/';
+  const search = new URLSearchParams(params).toString();
+  return `#/${view}${search ? `?${search}` : ''}`;
+}
+
+export function parseHash(hash: string): { view: AppView; params: Record<string, string> } | null {
+  if (!hash || hash === '#' || hash === '#/') return { view: 'home', params: {} };
+  const clean = hash.startsWith('#/') ? hash.slice(2) : hash.startsWith('#') ? hash.slice(1) : hash;
+  const [viewPart, queryPart] = clean.split('?');
+  const params: Record<string, string> = {};
+  if (queryPart) {
+    new URLSearchParams(queryPart).forEach((v, k) => {
+      params[k] = v;
+    });
+  }
+  const validViews: AppView[] = [
+    'home', 'about', 'courses', 'course-detail', 'posts', 'post-detail',
+    'contact', 'login', 'register', 'activate', 'student', 'profile', 'video-lesson',
+    'notifications', 'exams', 'quiz', 'quiz-result', 'translation',
+    'online_booking', 'flashcards', 'certificate'
+  ];
+  if (validViews.includes(viewPart as AppView)) {
+    return { view: viewPart as AppView, params };
+  }
+  return null;
 }
 
 function applyTheme(theme: Theme) {
@@ -58,17 +87,33 @@ function getInitialTheme(): Theme {
   return (localStorage.getItem('dmo-theme') as Theme) || 'light';
 }
 
+function getInitialLocale(): Locale {
+  if (typeof window === 'undefined') return 'ar';
+  const saved = localStorage.getItem('dmo-locale');
+  if (saved && ['ar', 'de', 'en'].includes(saved)) return saved as Locale;
+  return 'ar';
+}
+
+function getInitialView(): { view: AppView; params: Record<string, string> } {
+  if (typeof window === 'undefined') return { view: 'home', params: {} };
+  const fromHash = parseHash(window.location.hash);
+  if (fromHash) return fromHash;
+  return { view: 'home', params: {} };
+}
+
+const initial = getInitialView();
+
 export const useAppStore = create<AppState>((set, get) => ({
-  view: 'home',
-  viewParams: {},
+  view: initial.view,
+  viewParams: initial.params,
   prevView: null,
   prevParams: {},
-  locale: 'ar',
+  locale: getInitialLocale(),
   theme: 'light',
   isMobileMenuOpen: false,
   isNotificationOpen: false,
 
-  navigate: (view, params = {}) => {
+  navigate: (view, params = {}, replace = false) => {
     const state = get();
     set({
       prevView: state.view,
@@ -77,22 +122,34 @@ export const useAppStore = create<AppState>((set, get) => ({
       viewParams: params,
       isMobileMenuOpen: false,
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window !== 'undefined') {
+      const hash = viewToHash(view, params);
+      if (replace) {
+        window.history.replaceState({ view, params }, '', hash);
+      } else {
+        window.history.pushState({ view, params }, '', hash);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   },
 
   goBack: () => {
-    const state = get();
-    if (state.prevView) {
-      set({
-        view: state.prevView,
-        viewParams: state.prevParams,
-        prevView: null,
-        prevParams: {},
-      });
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back();
     } else {
-      set({ view: 'home', viewParams: {} });
+      const state = get();
+      if (state.prevView) {
+        set({
+          view: state.prevView,
+          viewParams: state.prevParams,
+          prevView: null,
+          prevParams: {},
+        });
+      } else {
+        set({ view: 'home', viewParams: {} });
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   },
 
   setLocale: (locale) => {
@@ -120,7 +177,41 @@ export const useAppStore = create<AppState>((set, get) => ({
   setNotificationOpen: (open) => set({ isNotificationOpen: open }),
 }));
 
-// Apply saved theme on load
+// Listen to browser navigation (back/forward)
 if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', (e) => {
+    const state = e.state as { view: AppView; params: Record<string, string> } | null;
+    if (state && state.view) {
+      useAppStore.setState({
+        view: state.view,
+        viewParams: state.params || {},
+        isMobileMenuOpen: false,
+      });
+    } else {
+      const parsed = parseHash(window.location.hash);
+      if (parsed) {
+        useAppStore.setState({
+          view: parsed.view,
+          viewParams: parsed.params,
+          isMobileMenuOpen: false,
+        });
+      }
+    }
+  });
+
+  window.addEventListener('hashchange', () => {
+    const parsed = parseHash(window.location.hash);
+    if (parsed) {
+      const current = useAppStore.getState();
+      if (current.view !== parsed.view || JSON.stringify(current.viewParams) !== JSON.stringify(parsed.params)) {
+        useAppStore.setState({
+          view: parsed.view,
+          viewParams: parsed.params,
+          isMobileMenuOpen: false,
+        });
+      }
+    }
+  });
+
   applyTheme(getInitialTheme());
 }

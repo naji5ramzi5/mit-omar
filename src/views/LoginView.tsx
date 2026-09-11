@@ -6,6 +6,8 @@ import { LogIn, Eye, EyeOff } from 'lucide-react';
 import { useAppStore } from '@/stores/app-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { t } from '@/lib/i18n';
+import { CONTACT_EMAIL, WHATSAPP_URL } from '@/lib/site-config';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 
 export default function LoginView() {
   const { locale, navigate } = useAppStore();
@@ -13,6 +15,7 @@ export default function LoginView() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -66,13 +69,39 @@ export default function LoginView() {
             </div>
           )}
 
+          {/* Google Sign In */}
+          <div className="mb-6">
+            <GoogleSignInButton
+              text={locale === 'ar' ? 'المتابعة باستخدام حساب Google' : locale === 'de' ? 'Mit Google fortfahren' : 'Continue with Google'}
+              onError={(msg) => setError(msg)}
+            />
+            
+            <div className="relative my-6 text-center">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+              </div>
+              <span className="relative px-3 bg-white dark:bg-card text-xs text-muted-foreground font-semibold">
+                {locale === 'ar' ? 'أو تسجيل الدخول بالبريد الإلكتروني' : locale === 'de' ? 'Oder mit E-Mail anmelden' : 'Or sign in with email'}
+              </span>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-bold text-foreground mb-1.5">{t(locale, 'login_email')}</label>
               <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="input-bold" placeholder="name@example.com" />
             </div>
             <div>
-              <label className="block text-sm font-bold text-foreground mb-1.5">{t(locale, 'login_password')}</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-bold text-foreground">{t(locale, 'login_password')}</label>
+                <button
+                  type="button"
+                  onClick={() => setShowForgot(true)}
+                  className="text-xs text-brand-orange hover:underline font-semibold"
+                >
+                  {locale === 'ar' ? 'نسيت كلمة المرور؟' : locale === 'de' ? 'Passwort vergessen?' : 'Forgot password?'}
+                </button>
+              </div>
               <div className="relative">
                 <input type={showPassword ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} className="input-bold pe-10" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-brand-orange transition-colors">
@@ -84,6 +113,42 @@ export default function LoginView() {
               {loading ? t(locale, 'common_loading') : t(locale, 'login_button')}
             </button>
           </form>
+
+          {showForgot && (
+            <div className="mt-6 p-4 rounded-2xl bg-brand-orange/5 border border-brand-orange/20 text-start space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="font-bold text-sm text-foreground">
+                  {locale === 'ar' ? 'استعادة كلمة المرور' : locale === 'de' ? 'Passwort wiederherstellen' : 'Reset Password'}
+                </p>
+                <button onClick={() => setShowForgot(false)} className="text-muted-foreground hover:text-foreground text-xs font-bold">✕</button>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {locale === 'ar'
+                  ? 'لاستعادة كلمة المرور، يرجى التواصل مع فريق الدعم أو الأستاذ عمر مصحوباً ببريدك الإلكتروني لتوليد كلمة مرور جديدة فوراً.'
+                  : locale === 'de'
+                  ? 'Um Ihr Passwort zurückzusetzen, wenden Sie sich bitte mit Ihrer E-Mail-Adresse an den Support.'
+                  : 'To reset your password, please contact support or teacher Omar with your registered email.'}
+              </p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <a
+                  href={`mailto:${CONTACT_EMAIL}?subject=استعادة كلمة المرور&body=مرحباً، نسيت كلمة المرور لحسابي: ${email || ''}`}
+                  className="px-3 py-1.5 rounded-lg bg-brand-orange text-white text-xs font-bold hover:bg-brand-orange-dark transition-all"
+                >
+                  {locale === 'ar' ? 'مراسلة عبر البريد' : locale === 'de' ? 'Per E-Mail' : 'Via Email'}
+                </a>
+                {WHATSAPP_URL && (
+                  <a
+                    href={WHATSAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
+                  >
+                    WhatsApp
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
             <span>{t(locale, 'login_no_account')} </span>

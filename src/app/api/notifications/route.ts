@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { decodeUserId } from '@/lib/admin-auth';
 import { NextResponse } from 'next/server';
 
@@ -7,14 +7,29 @@ export async function GET(req: Request) {
     const userId = decodeUserId(req);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .maybeSingle();
+
+    const isAdmin = user?.role === 'admin';
+
     const { searchParams } = new URL(req.url);
     const countOnly = searchParams.get('countOnly') === 'true';
+
+    let filterCondition = `userId.eq.${userId}`;
+    if (isAdmin) {
+      filterCondition = `userId.eq.${userId},userId.is.null,targetType.eq.admin`;
+    } else {
+      filterCondition = `userId.eq.${userId},and(userId.is.null,targetType.neq.admin)`;
+    }
 
     if (countOnly) {
       const { count } = await supabase
         .from('notifications')
         .select('id', { count: 'exact', head: true })
-        .or(`userId.eq.${userId},userId.is.null`)
+        .or(filterCondition)
         .eq('isRead', false);
 
       return NextResponse.json({ count: count || 0 });
@@ -23,7 +38,7 @@ export async function GET(req: Request) {
     const { data: notifications, error } = await supabase
       .from('notifications')
       .select('*')
-      .or(`userId.eq.${userId},userId.is.null`)
+      .or(filterCondition)
       .order('createdAt', { ascending: false });
 
     if (error) throw error;

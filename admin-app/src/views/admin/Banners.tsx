@@ -7,6 +7,7 @@ import {
   PrimaryButton, GhostButton, Modal, ConfirmDialog, SectionHeader, EmptyState, ListLoading,
   Toggle, LangInput, ImageField, FormRow, inputClass,
 } from './ui';
+import { resolveAdminMediaUrl } from './media-uploaders';
 import { adminFetch, fieldOf, useAdminData } from './api';
 import { Banner } from './types';
 
@@ -61,7 +62,7 @@ export default function BannersSection({
                 <div className="w-16 h-12 rounded-xl overflow-hidden bg-secondary shrink-0 border border-border">
                   {b.imageUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={b.imageUrl} alt="" className="w-full h-full object-cover" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />
+                    <img src={resolveAdminMediaUrl(b.imageUrl)} alt="" className="w-full h-full object-cover" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />
                   )}
                 </div>
                 <div className="min-w-0">

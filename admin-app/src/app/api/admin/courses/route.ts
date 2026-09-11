@@ -35,7 +35,11 @@ export async function POST(req: Request) {
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { titleAr, titleDe, titleEn, descriptionAr, descriptionDe, descriptionEn, level, imageUrl, order, isActive } = body;
+    const {
+      titleAr, titleDe, titleEn, descriptionAr, descriptionDe, descriptionEn,
+      level, imageUrl, order, isActive,
+      introVideoUrl, introVideoDuration, isIntroPublished
+    } = body;
 
     if (!titleAr || !titleDe || !titleEn || !level) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -57,6 +61,16 @@ export async function POST(req: Request) {
       .single();
 
     if (error) throw error;
+
+    if (introVideoUrl) {
+      const { saveCourseIntroVideo } = await import('@/lib/activation');
+      await saveCourseIntroVideo(course.id, {
+        videoUrl: introVideoUrl,
+        duration: introVideoDuration || 0,
+        isPublished: isIntroPublished ?? true,
+      });
+    }
+
     return NextResponse.json({ course }, { status: 201 });
   } catch (error) {
     console.error('Admin create course error:', error);

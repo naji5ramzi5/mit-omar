@@ -29,7 +29,9 @@ export const metadata: Metadata = {
   description:
     "Professional German language learning platform with Omar. Structured courses from A1 to C1, video lessons, and a premium learning experience.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/images/logo-official.png",
+    shortcut: "/images/logo-official.png",
+    apple: "/images/logo-official.png",
   },
 };
 

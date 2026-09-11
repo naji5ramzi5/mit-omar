@@ -1,11 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowRight, ArrowLeft, CheckCircle, Clock, List, X, Loader2, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ArrowRight, ArrowLeft, CheckCircle, Clock, List, X, Loader2, AlertTriangle,
+  Lock, KeyRound, Play, AlertCircle, CheckCircle2, MessageCircle
+} from 'lucide-react';
 import { useAppStore } from '@/stores/app-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { t } from '@/lib/i18n';
+import SecureVideoPlayer from '@/components/SecureVideoPlayer';
 
 interface Lesson {
   id: string;
@@ -26,9 +30,18 @@ export default function VideoLessonView() {
   const [loading, setLoading] = useState(true);
   const [showSidebar, setShowSidebar] = useState(false);
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const [videoToken, setVideoToken] = useState<string | undefined>();
+  const [watermarkToken, setWatermarkToken] = useState<string | undefined>();
   const [videoState, setVideoState] = useState<'idle' | 'loading' | 'ready' | 'error' | 'locked'>('idle');
   const [videoMsg, setVideoMsg] = useState('');
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Activation modal state inside video player
+  const [activationModalOpen, setActivationModalOpen] = useState(false);
+  const [activationCode, setActivationCode] = useState('');
+  const [activating, setActivating] = useState(false);
+  const [activationError, setActivationError] = useState<string | null>(null);
+  const [activationSuccess, setActivationSuccess] = useState<any | null>(null);
+  const [courseTitle, setCourseTitle] = useState<string>('');
   const isRtl = locale === 'ar';
   const BackArrow = isRtl ? ArrowRight : ArrowLeft;
   const courseId = viewParams.courseId;
@@ -50,13 +63,16 @@ export default function VideoLessonView() {
     })
       .then(async (r) => {
         if (r.status === 403 || r.status === 401) {
+          const errData = await r.json().catch(() => ({}));
           setVideoState('locked');
-          setVideoMsg(ui.locked);
+          setVideoMsg(errData.message || ui.locked);
           return;
         }
         if (!r.ok) throw new Error('unavailable');
         const data = await r.json();
         setVideoSrc(data.url || null);
+        setVideoToken(data.videoToken || undefined);
+        setWatermarkToken(data.watermarkToken || undefined);
         setVideoState('ready');
       })
       .catch(() => {
@@ -73,6 +89,9 @@ export default function VideoLessonView() {
     })
       .then(r => r.json())
       .then(data => {
+        if (data.course?.titleAr) {
+          setCourseTitle(data.course.titleAr);
+        }
         if (data.course?.lessons) {
           setLessons(data.course.lessons);
           const lesson = data.course.lessons.find((l: Lesson) => l.id === lessonId) || data.course.lessons[0];
@@ -93,6 +112,50 @@ export default function VideoLessonView() {
     setCurrentLesson(lesson);
     setShowSidebar(false);
     loadVideo(lesson);
+  };
+
+  const handleActivationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activationCode.trim() || !courseId) return;
+
+    if (!isAuthenticated()) {
+      navigate('login');
+      return;
+    }
+
+    setActivating(true);
+    setActivationError(null);
+    setActivationSuccess(null);
+
+    try {
+      const res = await fetch('/api/courses/activate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          code: activationCode.trim(),
+          courseId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'فشل تفعيل الكورس');
+      }
+
+      setActivationSuccess(data.enrollment);
+      // Reload current video with new active enrollment
+      if (currentLesson) {
+        loadVideo(currentLesson);
+      }
+      setTimeout(() => setActivationModalOpen(false), 2000);
+    } catch (err: any) {
+      setActivationError(err.message || 'حدث خطأ أثناء التفعيل');
+    } finally {
+      setActivating(false);
+    }
   };
 
   const currentIdx = lessons.findIndex(l => l.id === currentLesson?.id);
@@ -174,30 +237,72 @@ export default function VideoLessonView() {
               )}
 
               {videoState === 'locked' && (
-                <div className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
-                    <svg className="w-7 h-7 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <div className="text-center max-w-sm mx-auto p-6 space-y-4">
+                  <div className="w-16 h-16 mx-auto rounded-2xl bg-white/10 flex items-center justify-center text-amber-400">
+                    <Lock className="w-8 h-8" />
                   </div>
-                  <p className="text-white/70 text-sm">{videoMsg || ui.locked}</p>
+                  <div>
+                    <h3 className="text-base font-bold text-white mb-1">
+                      {videoMsg || 'هذا الدرس مدفوع'}
+                    </h3>
+                    <p className="text-xs text-white/60 leading-relaxed">
+                      هذا المحتوى محمي ويتطلب كود تفعيل نشطاً لمشاهدته.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <button
+                      onClick={() => {
+                        setActivationCode('');
+                        setActivationError(null);
+                        setActivationSuccess(null);
+                        setActivationModalOpen(true);
+                      }}
+                      className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-orange to-brand-red hover:from-brand-orange-dark hover:to-brand-red-dark text-white font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all"
+                    >
+                      <KeyRound className="w-4 h-4" />
+                      تفعيل الكورس بالكود
+                    </button>
+
+                    {/* Direct WhatsApp Purchase */}
+                    <a
+                      href={`https://wa.me/4915753063510?text=${encodeURIComponent(`مرحباً أستاذ عمر، أرغب في شراء كود تفعيل دورة "${courseTitle || 'الألمانية'}" لمشاهدة الدروس.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2 transition-all"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      شراء كود تفعيل عبر WhatsApp
+                    </a>
+
+                    {lessons.some(l => l.isFree && l.id !== currentLesson?.id) && (
+                      <button
+                        onClick={() => {
+                          const fl = lessons.find(l => l.isFree);
+                          if (fl) selectLesson(fl);
+                        }}
+                        className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white/90 text-xs font-semibold flex items-center justify-center gap-2 transition-all"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
+                        مشاهدة الدرس المجاني المتاح
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
               {videoState === 'ready' && videoSrc && (
-                <video
+                <SecureVideoPlayer
                   key={currentLesson?.id}
-                  ref={videoRef}
                   src={videoSrc}
-                  controls
-                  playsInline
-                  controlsList="nodownload noremoteplayback"
-                  className="w-full h-full object-contain bg-black"
+                  lessonId={currentLesson?.id || ''}
+                  videoToken={videoToken}
+                  watermarkToken={watermarkToken}
+                  userId={user?.id}
+                  userName={user?.name}
+                  userEmail={user?.email}
+                  onEnded={handleComplete}
                 />
-              )}
-
-              {user && videoState === 'ready' && (
-                <div className="absolute bottom-4 end-4 text-white/10 text-xs pointer-events-none animate-watermark">
-                  {t(locale, 'video_watermark')}: {user.name}
-                </div>
               )}
             </div>
           </div>
@@ -303,6 +408,101 @@ export default function VideoLessonView() {
           </motion.div>
         </>
       )}
+
+      {/* In-Player Course Activation Modal */}
+      <AnimatePresence>
+        {activationModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-md bg-[#141414] border-2 border-white/10 rounded-3xl p-6 shadow-2xl space-y-5"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center text-white shadow-md">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">تفعيل كود الدورة</h3>
+                    <p className="text-xs text-white/50">افتح هذا الدرس وكافة دروس الدورة فوراً</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActivationModalOpen(false)}
+                  className="p-1.5 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {activationSuccess ? (
+                <div className="p-5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-lg">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-base font-bold text-emerald-300">
+                    تم التفعيل بنجاح 🎉
+                  </h4>
+                  <p className="text-xs text-emerald-400 leading-relaxed">
+                    تم تفعيل الدورة لمدة {activationSuccess.durationDays} يوماً. جارٍ تشغيل الدرس تلقائياً…
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={handleActivationSubmit} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-white/80 block">
+                      كود التفعيل الخاص بالدورة
+                    </label>
+                    <input
+                      type="text"
+                      dir="ltr"
+                      value={activationCode}
+                      onChange={(e) => setActivationCode(e.target.value.toUpperCase())}
+                      placeholder="OMAR-A1-XXXX"
+                      required
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/20 focus:border-brand-orange text-white font-mono text-center tracking-widest text-base font-bold outline-none transition-all"
+                    />
+                  </div>
+
+                  {activationError && (
+                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{activationError}</span>
+                    </div>
+                  )}
+
+                  <div className="pt-2 space-y-2">
+                    <button
+                      type="submit"
+                      disabled={activating || !activationCode.trim()}
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-orange to-brand-red hover:from-brand-orange-dark hover:to-brand-red-dark text-white font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                    >
+                      {activating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          جارٍ التحقق والتفعيل…
+                        </>
+                      ) : (
+                        'تفعيل ومشاهدة الآن'
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActivationModalOpen(false)}
+                      className="w-full py-2 text-xs text-white/50 hover:text-white text-center font-semibold"
+                    >
+                      إلغاء
+                    </button>
+                  </div>
+                </form>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

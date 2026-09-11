@@ -11,58 +11,68 @@ export async function GET(req: Request) {
 
     const userId = decodeUserId(req);
 
-    // If enrolled, return user's enrollments with progress
+    // ── Enrolled courses (student dashboard) ─────────────────────────────────
     if (enrolled && userId) {
+      // Single query with join — no N+1
       const { data: enrollments } = await supabaseAdmin
         .from('enrollments')
-        .select('*, course:courses(id, titleAr, titleDe, titleEn, level, imageUrl)')
+        .select('*, course:courses(id, titleAr, titleDe, titleEn, level, imageUrl, order)')
         .eq('userId', userId)
         .order('activatedAt', { ascending: false });
 
-      const result: unknown[] = [];
-      for (const e of (enrollments || []) as any[]) {
-        const { data: lessons } = await supabaseAdmin
-          .from('lessons')
-          .select('id, titleAr, titleDe, titleEn, descriptionAr, descriptionDe, descriptionEn, duration, order, isFree, videoUrl, progress:lessonProgress(completed)')
-          .eq('courseId', e.courseId)
-          .order('order', { ascending: true });
+      if (!enrollments?.length) {
+        return NextResponse.json({ enrollments: [] });
+      }
 
-        const lessonsList = lessons || [];
-        const completedLessons = lessonsList.filter((l: Record<string, unknown>) => {
-          const progress = l.progress as Array<{ completed: boolean }>;
-          return progress?.some((p) => p.completed);
-        }).length;
-        const nextLesson = lessonsList.find((l: Record<string, unknown>) => {
-          const progress = l.progress as Array<{ completed: boolean }>;
-          return !progress?.some((p) => p.completed);
-        });
+      // Fetch all lessons for enrolled courses in a single query
+      const courseIds = enrollments.map((e: any) => e.courseId);
+      const { data: allLessons } = await supabaseAdmin
+        .from('lessons')
+        .select('id, courseId, "order", duration, isFree')
+        .in('courseId', courseIds)
+        .order('order', { ascending: true });
 
-        result.push({
+      // Fetch all progress for this user in a single query
+      const { data: allProgress } = await supabaseAdmin
+        .from('lessonProgress')
+        .select('lessonId, completed')
+        .eq('userId', userId);
+
+      const progressMap = new Map((allProgress || []).map((p) => [p.lessonId, p.completed]));
+
+      const result = (enrollments as any[]).map((e) => {
+        const courseLessons = (allLessons || []).filter((l: any) => l.courseId === e.courseId);
+        const completedLessons = courseLessons.filter((l: any) => progressMap.get(l.id)).length;
+        const nextLesson = courseLessons.find((l: any) => !progressMap.get(l.id));
+
+        return {
           id: e.id,
           course: e.course,
           activatedAt: e.activatedAt,
           expiresAt: e.expiresAt || null,
           isActive: e.isActive && (!e.expiresAt || new Date(e.expiresAt) > new Date()),
-          _count: { lessons: lessonsList.length },
+          _count: { lessons: courseLessons.length },
           completedLessons,
           nextLessonId: nextLesson?.id || null,
-        });
-      }
+        };
+      });
 
       return NextResponse.json({ enrollments: result });
     }
 
-    // Regular courses list
-    let query = supabase
+    // ── Public courses list ───────────────────────────────────────────────────
+    // Only select lesson fields actually needed (avoid SELECT * on lessons)
+    const lessonsSelect = includeLessons
+      ? 'lessons(id, titleAr, titleDe, titleEn, duration, "order", isFree)'
+      : 'lessons(count)';
+
+    const { data: courses, error } = await supabase
       .from('courses')
-      .select(includeLessons
-        ? '*, lessons(*)'
-        : '*, lessons(count)')
+      .select(`*, ${lessonsSelect}`)
       .eq('isActive', true)
       .order('order', { ascending: true })
       .limit(limit);
 
-    const { data: courses, error } = await query;
     if (error) throw error;
 
     const list = (courses as any[] || []).map((c: any) => ({
@@ -72,9 +82,12 @@ export async function GET(req: Request) {
           ? (c.lessons || []).length
           : c.lessons?.[0]?.count ?? 0,
       },
-      ...(includeLessons ? {} : { lessons: undefined }),
+      lessons: includeLessons && c.lessons ? c.lessons : undefined,
     }));
-    return NextResponse.json({ courses: list });
+
+    const response = NextResponse.json({ courses: list });
+    response.headers.set('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+    return response;
   } catch (error) {
     console.error('Courses error:', error);
     return NextResponse.json({ error: 'Failed to fetch courses' }, { status: 500 });

@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ChevronDown, Bell, LogOut, BookOpen, Globe, Sun, Moon } from 'lucide-react';
+import { Menu, X, ChevronDown, Bell, LogOut, BookOpen, Globe, Sun, Moon, User, Shield } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAppStore } from '@/stores/app-store';
 import { useAuthStore } from '@/stores/auth-store';
@@ -171,15 +171,20 @@ export default function Header() {
                     <ChevronDown className={`w-3 h-3 ${isTransparent ? 'text-white/40' : 'text-muted-foreground'}`} />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 rounded-xl border-border bg-popover shadow-card p-1">
+                <DropdownMenuContent align="end" className="w-52 rounded-xl border-border bg-popover shadow-card p-1">
                   <DropdownMenuItem onClick={() => navigate('student')} className="rounded-lg text-sm cursor-pointer">
                     <BookOpen className="w-4 h-4 ms-2 text-brand-orange" />
                     {t(locale, 'nav_my_courses')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('profile')} className="rounded-lg text-sm cursor-pointer">
+                    <User className="w-4 h-4 ms-2 text-brand-orange" />
+                    {locale === 'ar' ? 'الملف الشخصي' : locale === 'de' ? 'Mein Profil' : 'My Profile'}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('notifications')} className="rounded-lg text-sm cursor-pointer">
                     <Bell className="w-4 h-4 ms-2 text-brand-orange" />
                     {t(locale, 'nav_notifications')}
                   </DropdownMenuItem>
+
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout} className="text-red-500 rounded-lg text-sm cursor-pointer focus:text-red-500 focus:bg-red-50">
                     <LogOut className="w-4 h-4 ms-2" />
@@ -219,7 +224,7 @@ export default function Header() {
             className={`lg:hidden flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 ${
               isTransparent
                 ? 'text-white hover:bg-white/10'
-                : 'text-foreground hover:bg-brand-orange/5'
+                : 'text-foreground hover:text-brand-orange hover:bg-brand-orange/5'
             }`}
           >
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -259,7 +264,9 @@ export default function Header() {
               {isAuthenticated() ? (
                 <>
                   <button onClick={() => navigate('student')} className="text-start px-4 py-3 text-sm font-semibold text-muted-foreground hover:text-brand-orange hover:bg-brand-orange/5 rounded-xl transition-all">{t(locale, 'nav_my_courses')}</button>
+                  <button onClick={() => navigate('profile')} className="text-start px-4 py-3 text-sm font-semibold text-muted-foreground hover:text-brand-orange hover:bg-brand-orange/5 rounded-xl transition-all">{locale === 'ar' ? 'الملف الشخصي' : locale === 'de' ? 'Mein Profil' : 'My Profile'}</button>
                   <button onClick={() => navigate('notifications')} className="text-start px-4 py-3 text-sm font-semibold text-muted-foreground hover:text-brand-orange hover:bg-brand-orange/5 rounded-xl transition-all">{t(locale, 'nav_notifications')}</button>
+
                   <button onClick={logout} className="text-start px-4 py-3 text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-all">{t(locale, 'nav_logout')}</button>
                 </>
               ) : (

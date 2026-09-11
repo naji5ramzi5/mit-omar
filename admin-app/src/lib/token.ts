@@ -8,6 +8,11 @@ function getSecret(): string {
   return createHmac('sha256', 'dmo-token-v1').update(material).digest('hex');
 }
 
+function getFallbackSecret(): string {
+  const material = `${process.env.SUPABASE_SERVICE_ROLE_KEY || ''}:${process.env.NEXT_PUBLIC_SUPABASE_URL || ''}`;
+  return createHmac('sha256', 'dmo-token-v1').update(material).digest('hex');
+}
+
 export function issueToken(userId: string): string {
   const payload = Buffer.from(`${userId}:${Date.now().toString()}`).toString('base64');
   const sig = createHmac('sha256', getSecret()).update(payload).digest('hex');
@@ -20,15 +25,30 @@ export function readUserId(token: string | null): string | null {
   if (idx === -1) return null;
   const payload = token.slice(0, idx);
   const sig = token.slice(idx + 1);
-  const expected = createHmac('sha256', getSecret()).update(payload).digest('hex');
-  if (expected.length !== sig.length) return null;
-  let received: Buffer;
-  try {
-    received = Buffer.from(sig, 'hex');
-  } catch {
-    return null;
+
+  // Try primary secret
+  let valid = false;
+  let expected = createHmac('sha256', getSecret()).update(payload).digest('hex');
+  if (expected.length === sig.length) {
+    try {
+      const received = Buffer.from(sig, 'hex');
+      if (timingSafeEqual(received, Buffer.from(expected, 'hex'))) valid = true;
+    } catch {}
   }
-  if (!timingSafeEqual(received, Buffer.from(expected, 'hex'))) return null;
+
+  // If failed, try fallback secret
+  if (!valid) {
+    const fallbackExpected = createHmac('sha256', getFallbackSecret()).update(payload).digest('hex');
+    if (fallbackExpected.length === sig.length) {
+      try {
+        const received = Buffer.from(sig, 'hex');
+        if (timingSafeEqual(received, Buffer.from(fallbackExpected, 'hex'))) valid = true;
+      } catch {}
+    }
+  }
+
+  if (!valid) return null;
+
   let decoded: string;
   try {
     decoded = Buffer.from(payload, 'base64').toString('utf-8');

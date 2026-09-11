@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase';
+import { readUserId } from '@/lib/token';
 import { NextResponse } from 'next/server';
 
 export async function GET(req: Request) {
@@ -8,8 +9,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const token = authHeader.replace('Bearer ', '');
-    const decoded = Buffer.from(token, 'base64').toString('utf-8');
-    const userId = decoded.split(':')[0];
+    const userId = readUserId(token);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { data: user, error } = await supabaseAdmin
       .from('users')

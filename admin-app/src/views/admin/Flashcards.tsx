@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Layers, Plus, Pencil, Trash2, ArrowUp, ArrowDown, Volume2 } from 'lucide-react';
+import { Layers, Plus, Pencil, Trash2, ArrowUp, ArrowDown, Volume2, Languages, Loader2 } from 'lucide-react';
 import { adminFetch } from './api';
 import { PrimaryButton, GhostButton, Modal, ConfirmDialog, SectionHeader, LangInput, FormRow, inputClass, EmptyState, LevelBadge } from './ui';
+import { AudioUploader, ImageUploader, resolveAdminMediaUrl } from './media-uploaders';
 import { LEVELS } from './types';
 import { toast } from './toast';
 
@@ -25,15 +26,10 @@ interface Word {
   exampleAr?: string;
   exampleEn?: string;
   audioUrl?: string | null;
+  imageUrl?: string | null;
   order: number;
   published: boolean;
 }
-
-const resolveMedia = (url?: string | null) => {
-  if (!url) return '';
-  if (url.startsWith('r2:')) return `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ''}${url.slice(4)}`;
-  return url;
-};
 
 export default function Flashcards({ token, locale }: { token: string; locale: string }) {
   const [lists, setLists] = useState<WordList[]>([]);
@@ -49,7 +45,6 @@ export default function Flashcards({ token, locale }: { token: string; locale: s
   const [wordModal, setWordModal] = useState(false);
   const [editingWord, setEditingWord] = useState<Word | null>(null);
   const [wordForm, setWordForm] = useState<any>({});
-  const [uploading, setUploading] = useState(false);
 
   const [confirm, setConfirm] = useState<{ type: 'list' | 'word'; id: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -113,25 +108,8 @@ export default function Flashcards({ token, locale }: { token: string; locale: s
     setEditingWord(word || null);
     setWordForm(word
       ? { ...word }
-      : { listId: activeList, wordDe: '', wordAr: '', wordEn: '', exampleDe: '', exampleAr: '', exampleEn: '', audioUrl: null, order: words.length, published: true });
+      : { listId: activeList, wordDe: '', wordAr: '', wordEn: '', exampleDe: '', exampleAr: '', exampleEn: '', audioUrl: null, imageUrl: null, order: words.length, published: true });
     setWordModal(true);
-  };
-
-  const uploadAudio = async (file: File) => {
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch('/api/admin/flashcards/audio', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'فشل الرفع');
-      setWordForm((w: any) => ({ ...w, audioUrl: data.url }));
-      toast.success('تم رفع الصوت');
-    } catch (e: any) {
-      toast.error(e.message || 'فشل رفع الصوت');
-    } finally {
-      setUploading(false);
-    }
   };
 
   const saveWord = async () => {
@@ -151,6 +129,50 @@ export default function Flashcards({ token, locale }: { token: string; locale: s
     } finally {
       setSaving(false);
     }
+  };
+
+  const [translating, setTranslating] = useState(false);
+
+  const autoTranslate = async () => {
+    const text = wordForm.wordDe?.trim();
+    if (!text) return toast.error('أدخل الكلمة الألمانية أولاً');
+    setTranslating(true);
+    try {
+      const [arRes, enRes] = await Promise.all([
+        fetch('/api/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, from: 'de', to: 'ar' }) }).then(r => r.json()),
+        fetch('/api/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, from: 'de', to: 'en' }) }).then(r => r.json()),
+      ]);
+      setWordForm((w: any) => ({
+        ...w,
+        wordAr: arRes.translation || w.wordAr,
+        wordEn: enRes.translation || w.wordEn,
+      }));
+      toast.success('تمت الترجمة التلقائية');
+    } catch {
+      toast.error('فشلت الترجمة');
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  const previewTTS = () => {
+    const text = wordForm.wordDe?.trim();
+    if (!text) return;
+    // Try server TTS first, fall back to browser SpeechSynthesis
+    const audio = new Audio(`/api/tts?text=${encodeURIComponent(text)}&lang=de-DE`);
+    audio.onerror = () => {
+      // Fallback to browser SpeechSynthesis
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'de-DE';
+      utter.rate = 0.85;
+      window.speechSynthesis.speak(utter);
+    };
+    audio.play().catch(() => {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'de-DE';
+      utter.rate = 0.85;
+      window.speechSynthesis.speak(utter);
+    });
   };
 
   const moveWord = async (idx: number, dir: -1 | 1) => {
@@ -223,6 +245,12 @@ export default function Flashcards({ token, locale }: { token: string; locale: s
           <div className="space-y-3">
             {words.map((w, idx) => (
               <div key={w.id} className="card-bold border-2 p-4 flex items-center gap-4">
+                {w.imageUrl && (
+                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-secondary shrink-0 border border-border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={resolveAdminMediaUrl(w.imageUrl)} alt="" className="w-full h-full object-cover" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-display font-bold text-foreground">{w.wordDe}</p>
@@ -263,25 +291,51 @@ export default function Flashcards({ token, locale }: { token: string; locale: s
       {/* Word modal */}
       <Modal open={wordModal} onClose={() => setWordModal(false)} title={editingWord ? 'تعديل الكلمة' : 'كلمة جديدة'} size="xl">
         <div className="space-y-4">
-          <LangInput label="الكلمة الألمانية والمعنى" form={wordForm} field="word" onChange={setWordForm} required />
+          {/* German word with TTS preview */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-sm font-bold text-foreground">الكلمة الألمانية والمعنى</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={previewTTS}
+                  className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
+                  title="استمع إلى نطق الكلمة الألمانية"
+                >
+                  <Volume2 className="w-3 h-3" />
+                  <span>استمع</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={autoTranslate}
+                  disabled={translating}
+                  className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-green-50 dark:bg-green-950 text-green-600 hover:bg-green-100 dark:hover:bg-green-900 transition-colors disabled:opacity-50"
+                  title="ترجمة تلقائية من الألمانية"
+                >
+                  {translating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Languages className="w-3 h-3" />}
+                  <span>ترجمة تلقائية</span>
+                </button>
+              </div>
+            </div>
+            <LangInput label="" form={wordForm} field="word" onChange={setWordForm} required />
+          </div>
           <LangInput label="مثال (اختياري)" form={wordForm} field="example" onChange={setWordForm} textarea />
 
-          <FormRow label="الصوت — تسجيل الأستاذ">
-            <div className="flex items-center gap-3">
-              <input
-                type="file"
-                accept="audio/*"
-                className="block w-full text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-gradient-to-r file:from-brand-orange file:to-brand-red file:text-white file:font-bold file:cursor-pointer"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAudio(f); e.target.value = ''; }}
-              />
-              {uploading && <span className="text-xs text-brand-orange font-bold">جارٍ الرفع…</span>}
-            </div>
-            {wordForm.audioUrl && (
-              <div className="mt-2 flex items-center gap-3">
-                <audio controls src={resolveMedia(wordForm.audioUrl)} className="h-10 flex-1" />
-                <button type="button" onClick={() => setWordForm((w: any) => ({ ...w, audioUrl: null }))} className="text-xs text-red-500 font-bold">حذف الصوت</button>
-              </div>
-            )}
+          <FormRow label="التسجيل الصوتي — نطق الأستاذ عمر">
+            <AudioUploader
+              value={wordForm.audioUrl}
+              onChange={(url) => setWordForm((w: any) => ({ ...w, audioUrl: url }))}
+              placeholder="انقر لرفع نطق الكلمة من الكمبيوتر أو اسحبه هنا"
+            />
+          </FormRow>
+
+          <FormRow label="صورة توضيحية للبطاقة (اختياري)">
+            <ImageUploader
+              value={wordForm.imageUrl}
+              onChange={(url) => setWordForm((w: any) => ({ ...w, imageUrl: url }))}
+              placeholder="انقر لرفع صورة معبرة عن الكلمة"
+              aspectRatio="16/9"
+            />
           </FormRow>
 
           <div className="flex items-center gap-3">

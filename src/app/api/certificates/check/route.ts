@@ -59,9 +59,15 @@ export async function GET(req: Request) {
       !latest || (row.updatedAt && row.updatedAt > latest) ? row.updatedAt : latest,
       null as string | null);
 
+    const { data: userRecord } = await supabaseAdmin
+      .from('users')
+      .select('name')
+      .eq('id', userId)
+      .single();
+
     return NextResponse.json({
       eligible: true,
-      name: '',
+      name: userRecord?.name || '',
       courseTitle: { ar: course?.titleAr, de: course?.titleDe, en: course?.titleEn },
       completedAt,
       progress: { completed: completed.length, total: lessonIds.length },

@@ -15,12 +15,14 @@ interface ActivationResult {
 }
 
 export default function ActivateView() {
-  const { locale, navigate } = useAppStore();
+  const { locale, navigate, viewParams } = useAppStore();
   const { isAuthenticated, token } = useAuthStore();
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(() => (viewParams.code as string) || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<ActivationResult | null>(null);
+
+  const courseId = viewParams.courseId as string | undefined;
 
   const handleActivate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +36,10 @@ export default function ActivateView() {
       const res = await fetch('/api/courses/activate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ code: code.trim() }),
+        body: JSON.stringify({
+          code: code.trim(),
+          courseId: courseId || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {

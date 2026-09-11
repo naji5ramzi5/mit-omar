@@ -2,12 +2,12 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { verifyAdmin } from '@/lib/admin-auth';
 import { NextResponse } from 'next/server';
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: Request, ctx: RouteContext<'/api/admin/banners/[id]'>) {
   try {
     const userId = await verifyAdmin(req);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id } = await params;
+    const { id } = await ctx.params;
     const body = await req.json();
     const { titleAr, titleDe, titleEn, descriptionAr, descriptionDe, descriptionEn, imageUrl, link, pageSlug, labelAr, labelDe, labelEn, order, isActive } = body;
 
@@ -43,12 +43,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, ctx: RouteContext<'/api/admin/banners/[id]'>) {
   try {
     const userId = await verifyAdmin(req);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id } = await params;
+    const { id } = await ctx.params;
     const { error } = await supabaseAdmin.from('banners').delete().eq('id', id);
     if (error) throw error;
 

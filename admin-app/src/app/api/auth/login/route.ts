@@ -27,10 +27,18 @@ export async function POST(req: Request) {
 
     const token = issueToken(user.id);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
       token,
     });
+
+    response.cookies.set('dmo-token', token, {
+      path: '/',
+      maxAge: 30 * 24 * 3600,
+      sameSite: 'lax',
+    });
+
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

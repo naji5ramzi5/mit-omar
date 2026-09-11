@@ -1,10 +1,12 @@
-﻿'use client';
+'use client';
 
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { lazy, Suspense } from 'react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import { useAppStore } from '@/stores/app-store';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import { useAppStore, parseHash } from '@/stores/app-store';
 import { useAuthStore } from '@/stores/auth-store';
 
 const HomeView = lazy(() => import('@/views/HomeView'));
@@ -27,6 +29,7 @@ const TranslationView = lazy(() => import('@/views/TranslationView'));
 const OnlineBookingView = lazy(() => import('@/views/OnlineBookingView'));
 const FlashcardsView = lazy(() => import('@/views/FlashcardsView'));
 const CertificateView = lazy(() => import('@/views/CertificateView'));
+const ProfileView = lazy(() => import('@/views/ProfileView'));
 
 function ViewLoader() {
   return (
@@ -37,43 +40,58 @@ function ViewLoader() {
 }
 
 export default function AppShell() {
-  const { view } = useAppStore();
-  const { token, user, setLoading } = useAuthStore();
+  const { view, locale, setLocale, setTheme } = useAppStore();
+  const { token } = useAuthStore();
 
+  // ── One-time side-effects on mount ────────────────────────────────────────
+  // Auth is already restored synchronously in auth-store.ts
+  // Locale is already restored synchronously in app-store.ts
+  // Only need to:
+  //   1. Apply locale to DOM (html lang/dir attributes)
+  //   2. Restore and apply theme
+  //   3. Restore view from URL hash (if navigated directly)
+  //   4. Track daily visit
   useEffect(() => {
-  // Restore auth state from localStorage
-  const savedToken = localStorage.getItem('dmo-token');
-    const savedUser = localStorage.getItem('dmo-user');
-    if (savedToken && savedUser) {
-      try {
-        useAuthStore.setState({
-          token: savedToken,
-          user: JSON.parse(savedUser),
-          isLoading: false,
-        });
-      } catch {
-        localStorage.removeItem('dmo-token');
-        localStorage.removeItem('dmo-user');
-        setLoading(false);
-      }
-    } else {
-      setLoading(false);
-    }
+    // Apply locale to DOM (already restored in store, just sync to DOM)
+    const doc = document.documentElement;
+    doc.lang = locale;
+    doc.dir = locale === 'ar' ? 'rtl' : 'ltr';
 
-    // Restore locale
-    const savedLocale = localStorage.getItem('dmo-locale');
-    if (savedLocale && ['ar', 'de', 'en'].includes(savedLocale)) {
-      useAppStore.getState().setLocale(savedLocale as 'ar' | 'de' | 'en');
-    }
-
-    // Restore theme
-    const savedTheme = localStorage.getItem('dmo-theme');
+    // Restore theme (setTheme calls applyTheme internally)
+    const savedTheme = localStorage.getItem('dmo-theme') as 'light' | 'dark' | 'system' | null;
     if (savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
-      useAppStore.getState().setTheme(savedTheme as 'light' | 'dark' | 'system');
+      setTheme(savedTheme);
     }
-  }, []);
 
-  // Fetch unread notifications count
+    // Restore view from URL hash if present
+    if (window.location.hash) {
+      const parsed = parseHash(window.location.hash);
+      if (parsed) {
+        useAppStore.setState({ view: parsed.view, viewParams: parsed.params });
+      }
+    }
+
+    // Track a visit once per day per browser (fire-and-forget)
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `dmo-visit-${today}`;
+    if (!localStorage.getItem(key)) {
+      localStorage.setItem(key, '1');
+      fetch('/api/visits/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ day: today }),
+      }).catch(() => {});
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-apply locale to DOM whenever it changes (e.g., user switches language)
+  useEffect(() => {
+    const doc = document.documentElement;
+    doc.lang = locale;
+    doc.dir = locale === 'ar' ? 'rtl' : 'ltr';
+  }, [locale]);
+
+  // Fetch unread notifications count (poll every 30 seconds when logged in)
   useEffect(() => {
     if (!token) return;
     const fetchCount = async () => {
@@ -92,42 +110,30 @@ export default function AppShell() {
     return () => clearInterval(interval);
   }, [token]);
 
-  // Track a visit once per day per browser
-  useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const key = `dmo-visit-${today}`;
-    if (localStorage.getItem(key)) return;
-    localStorage.setItem(key, '1');
-    fetch('/api/visits/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ day: today }),
-    }).catch(() => {});
-  }, []);
-
   const renderView = () => {
     switch (view) {
-      case 'home': return <HomeView />;
-      case 'about': return <AboutView />;
-      case 'courses': return <CoursesHubView />;
+      case 'home':          return <HomeView />;
+      case 'about':         return <AboutView />;
+      case 'courses':       return <CoursesHubView />;
       case 'course-detail': return <CourseDetailView />;
-      case 'posts': return <PostsView />;
-      case 'post-detail': return <PostDetailView />;
-      case 'contact': return <ContactView />;
-      case 'login': return <LoginView />;
-      case 'register': return <RegisterView />;
-      case 'activate': return <ActivateView />;
-      case 'student': return <StudentView />;
-      case 'video-lesson': return <VideoLessonView />;
+      case 'posts':         return <PostsView />;
+      case 'post-detail':   return <PostDetailView />;
+      case 'contact':       return <ContactView />;
+      case 'login':         return <LoginView />;
+      case 'register':      return <RegisterView />;
+      case 'activate':      return <ActivateView />;
+      case 'student':       return <StudentView />;
+      case 'video-lesson':  return <VideoLessonView />;
       case 'notifications': return <NotificationsView />;
-      case 'exams': return <ExamsView />;
-      case 'quiz': return <QuizView />;
-      case 'quiz-result': return <QuizResultView />;
-      case 'translation': return <TranslationView />;
+      case 'exams':         return <ExamsView />;
+      case 'quiz':          return <QuizView />;
+      case 'quiz-result':   return <QuizResultView />;
+      case 'translation':   return <TranslationView />;
       case 'online_booking': return <OnlineBookingView />;
-      case 'flashcards': return <FlashcardsView />;
-      case 'certificate': return <CertificateView />;
-      default: return <HomeView />;
+      case 'flashcards':    return <FlashcardsView />;
+      case 'certificate':   return <CertificateView />;
+      case 'profile':       return <ProfileView />;
+      default:              return <HomeView />;
     }
   };
 
@@ -138,21 +144,22 @@ export default function AppShell() {
       {!isFullPage && <Header />}
       <main className={isFullPage ? 'flex-1' : 'flex-1 pt-16 lg:pt-20'}>
         <Suspense fallback={<ViewLoader />}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={view}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-            >
-              {renderView()}
-            </motion.div>
-          </AnimatePresence>
+          <ErrorBoundary>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={view}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+              >
+                {renderView()}
+              </motion.div>
+            </AnimatePresence>
+          </ErrorBoundary>
         </Suspense>
       </main>
       {!isFullPage && <Footer />}
     </div>
   );
 }
-

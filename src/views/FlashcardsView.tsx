@@ -6,6 +6,7 @@ import { Layers, Volume2, RotateCcw, CheckCircle2, XCircle, Brain, ArrowRight, L
 import { useAppStore } from '@/stores/app-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { t } from '@/lib/i18n';
+import { resolveMediaUrl } from '@/lib/media';
 
 interface WordList {
   id: string;
@@ -26,6 +27,7 @@ interface Card {
   exampleAr?: string;
   exampleEn?: string;
   audioUrl?: string | null;
+  imageUrl?: string | null;
 }
 
 type AudioState = 'idle' | 'loading' | 'playing' | 'paused';
@@ -37,15 +39,11 @@ const GRADES = [
   { grade: 3, label: 'سهل', labelDe: 'Leicht', labelEn: 'Easy', color: 'text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-900/50 hover:border-blue-400' },
 ] as const;
 
-const resolveAudio = (url?: string | null) => {
-  if (!url) return '';
-  if (url.startsWith('r2:')) return `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ''}${url.slice(4)}`;
-  return url;
-};
+const resolveAudio = (url?: string | null) => resolveMediaUrl(url);
 
 export default function FlashcardsView() {
   const { locale, navigate } = useAppStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, token } = useAuthStore();
   const [lists, setLists] = useState<WordList[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedList, setSelectedList] = useState<WordList | null>(null);
@@ -228,7 +226,7 @@ export default function FlashcardsView() {
       try {
         await fetch('/api/flashcards/review', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dmo-token') || ''}` },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || ''}` },
           body: JSON.stringify({ wordId: cards[index].id, grade }),
         });
       } catch { /* ignore */ }
@@ -354,6 +352,12 @@ export default function FlashcardsView() {
                       style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                     >
                       <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-brand-red to-brand-orange" />
+                      {cards[index].imageUrl && (
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden mb-3 border border-border shadow-sm mx-auto">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={resolveMediaUrl(cards[index].imageUrl)} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      )}
                       <p className="level-badge mb-4">{ui.meaning}</p>
                       <p className="font-display text-2xl sm:text-3xl font-black text-brand-orange mb-1">{cards[index].wordAr}</p>
                       {cards[index].wordEn && (

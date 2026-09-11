@@ -23,10 +23,35 @@ interface AuthState {
   isAdmin: () => boolean;
 }
 
+/**
+ * Read auth state synchronously from localStorage during store creation.
+ * This prevents a second render/fetch cycle caused by async restoration.
+ */
+function getInitialAuthState(): { user: User | null; token: string | null; isLoading: boolean } {
+  if (typeof window === 'undefined') {
+    return { user: null, token: null, isLoading: false };
+  }
+  try {
+    const savedToken = localStorage.getItem('dmo-token');
+    const savedUser = localStorage.getItem('dmo-user');
+    if (savedToken && savedUser) {
+      const user = JSON.parse(savedUser) as User;
+      return { user, token: savedToken, isLoading: false };
+    }
+  } catch {
+    // Corrupted data — clear it
+    localStorage.removeItem('dmo-token');
+    localStorage.removeItem('dmo-user');
+  }
+  return { user: null, token: null, isLoading: false };
+}
+
+const initialAuth = getInitialAuthState();
+
 export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
-  token: null,
-  isLoading: true,
+  user: initialAuth.user,
+  token: initialAuth.token,
+  isLoading: initialAuth.isLoading,
   unreadCount: 0,
 
   setUser: (user) => set({ user }),

@@ -16,7 +16,7 @@ interface CheckResult {
 
 export default function CertificateView() {
   const { locale, viewParams, goBack, navigate } = useAppStore();
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const [checking, setChecking] = useState(true);
   const [result, setResult] = useState<CheckResult | null>(null);
 
@@ -78,7 +78,7 @@ export default function CertificateView() {
   useEffect(() => {
     const courseId = viewParams.courseId || 'none';
     fetch(`/api/certificates/check?courseId=${courseId}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('dmo-token') || ''}` },
+      headers: { Authorization: `Bearer ${token || ''}` },
     })
       .then((r) => r.json())
       .then((d) => {

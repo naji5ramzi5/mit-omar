@@ -7,9 +7,17 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const userId = await verifyAdmin(req);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { lessonId } = await params;
+    const { id, lessonId } = await params;
     const body = await req.json();
     const { titleAr, titleDe, titleEn, descriptionAr, descriptionDe, descriptionEn, videoUrl, duration, order, isFree } = body;
+
+    // Enforce single free lesson per course invariant
+    if (isFree === true) {
+      await supabaseAdmin
+        .from('lessons')
+        .update({ isFree: false })
+        .eq('courseId', id);
+    }
 
     const updateData: Record<string, unknown> = {};
     if (titleAr !== undefined) updateData.titleAr = titleAr;

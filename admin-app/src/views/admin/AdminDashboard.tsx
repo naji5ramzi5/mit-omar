@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, BookOpen, FileText, Image as ImageIcon, GraduationCap, Users, Star, Settings, Mail,
   LogOut, ExternalLink, ShieldCheck, Menu, X, Bell, Clapperboard, KeyRound, CalendarDays, Layers,
+  Award, MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/app-store';
@@ -13,6 +14,7 @@ import Courses from './Courses';
 import Posts from './Posts';
 import Banners from './Banners';
 import Quizzes from './Quizzes';
+import QuizResults from './QuizResults';
 import Students from './Students';
 import Testimonials from './Testimonials';
 import SettingsSection from './Settings';
@@ -22,33 +24,71 @@ import Reels from './Reels';
 import Codes from './Codes';
 import Bookings from './Bookings';
 import Flashcards from './Flashcards';
+import Contacts from './Contacts';
 import type { AdminStats } from './types';
 
-type Section = 'dashboard' | 'courses' | 'posts' | 'banners' | 'reels' | 'quizzes' | 'students' | 'codes' | 'bookings' | 'flashcards' | 'testimonials' | 'subscribers' | 'notifications' | 'settings';
+type Section =
+  | 'dashboard'
+  | 'courses'
+  | 'posts'
+  | 'banners'
+  | 'reels'
+  | 'quizzes'
+  | 'quiz-results'
+  | 'students'
+  | 'codes'
+  | 'bookings'
+  | 'contacts'
+  | 'flashcards'
+  | 'testimonials'
+  | 'subscribers'
+  | 'notifications'
+  | 'settings';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
 
 const NAV: { key: Section; label: string; icon: any }[] = [
   { key: 'dashboard', label: 'الرئيسية', icon: LayoutDashboard },
-  { key: 'courses', label: 'الدورات', icon: BookOpen },
-  { key: 'posts', label: 'المقالات', icon: FileText },
-  { key: 'banners', label: 'البانرات', icon: ImageIcon },
-  { key: 'reels', label: 'الفيديوهات', icon: Clapperboard },
-  { key: 'quizzes', label: 'الاختبارات', icon: GraduationCap },
-  { key: 'students', label: 'الطلاب', icon: Users },
+  { key: 'courses', label: 'الدورات والدروس', icon: BookOpen },
+  { key: 'posts', label: 'المقالات والمنشورات', icon: FileText },
+  { key: 'reels', label: 'الفيديوهات التعليمية', icon: Clapperboard },
+  { key: 'banners', label: 'البانرات الإعلانية', icon: ImageIcon },
+  { key: 'flashcards', label: 'بطاقات الحفظ', icon: Layers },
+  { key: 'quizzes', label: 'إدارة الاختبارات', icon: GraduationCap },
+  { key: 'quiz-results', label: 'نتائج الاختبارات', icon: Award },
+  { key: 'students', label: 'الطلاب المسجلين', icon: Users },
   { key: 'codes', label: 'أكواد التفعيل', icon: KeyRound },
   { key: 'bookings', label: 'حجوزات الأونلاين', icon: CalendarDays },
-  { key: 'flashcards', label: 'بطاقات الحفظ', icon: Layers },
-  { key: 'testimonials', label: 'آراء الطلاب', icon: Star },
-  { key: 'subscribers', label: 'المشتركون', icon: Mail },
+  { key: 'contacts', label: 'رسائل التواصل', icon: MessageSquare },
   { key: 'notifications', label: 'الإشعارات', icon: Bell },
-  { key: 'settings', label: 'الإعدادات', icon: Settings },
+  { key: 'testimonials', label: 'آراء الطلاب', icon: Star },
+  { key: 'subscribers', label: 'القائمة البريدية', icon: Mail },
+  { key: 'settings', label: 'إعدادات الموقع والأستاذ', icon: Settings },
 ];
 
 export default function AdminDashboard({ user, onLogout }: { user: any; onLogout: () => void }) {
   const { locale } = useAppStore();
   const { token, isAdmin, logout } = useAuthStore();
-  const [active, setActive] = useState<Section>('dashboard');
+  const [active, setActive] = useState<Section>(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.replace(/^\/+/, '').split('/')[0] as Section;
+      if (NAV.some((n) => n.key === path)) return path;
+      const hash = window.location.hash.replace('#', '') as Section;
+      if (NAV.some((n) => n.key === hash)) return hash;
+    }
+    return 'dashboard';
+  });
   const [loading, setLoading] = useState(true);
   const [mobileNav, setMobileNav] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const targetUrl = active === 'dashboard' ? '/' : `/${active}`;
+      if (window.location.pathname !== targetUrl) {
+        window.history.replaceState(null, '', targetUrl);
+      }
+    }
+  }, [active]);
 
   const [stats, setStats] = useState<AdminStats | null>(null);
 
@@ -81,7 +121,7 @@ export default function AdminDashboard({ user, onLogout }: { user: any; onLogout
         </div>
         <p className="text-xl font-black text-foreground mb-2">غير مصرح بالدخول</p>
         <p className="text-sm text-muted-foreground mb-6">هذه الصفحة مخصصة للأستاذ عمر فقط</p>
-        <a href="http://localhost:3001" className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-brand-orange to-brand-red text-white shadow-glow">
+        <a href={SITE_URL} className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-brand-orange to-brand-red text-white shadow-glow">
           العودة للموقع
         </a>
       </div>
@@ -96,16 +136,16 @@ export default function AdminDashboard({ user, onLogout }: { user: any; onLogout
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-6">
           {/* Sidebar - fixed on desktop */}
           <aside className={cn(
-            'lg:w-56 lg:shrink-0',
+            'lg:w-60 lg:shrink-0',
             mobileNav ? 'block' : 'hidden lg:block',
           )}>
             <div className="lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:overflow-y-auto space-y-4">
               {/* Brand */}
-              <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-gradient-to-l from-brand-orange to-brand-red text-white shadow-glow">
+              <div className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-gradient-to-l from-brand-orange to-brand-red text-white shadow-glow">
                 <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center font-black text-sm shrink-0">د</div>
                 <div className="leading-tight min-w-0">
                   <p className="font-black text-sm truncate">دويتش مع عمر</p>
-                  <p className="text-[10px] opacity-90">لوحة التحكم</p>
+                  <p className="text-[10px] opacity-90">لوحة الإدارة الشاملة</p>
                 </div>
               </div>
 
@@ -116,7 +156,7 @@ export default function AdminDashboard({ user, onLogout }: { user: any; onLogout
                     key={item.key}
                     onClick={() => { setActive(item.key); setMobileNav(false); }}
                     className={cn(
-                      'flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl transition-all duration-300 whitespace-nowrap w-full',
+                      'flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl transition-all duration-200 whitespace-nowrap w-full',
                       active === item.key
                         ? 'bg-gradient-to-r from-brand-orange to-brand-red text-white shadow-glow'
                         : 'text-muted-foreground hover:text-foreground hover:bg-brand-orange/5',
@@ -130,7 +170,7 @@ export default function AdminDashboard({ user, onLogout }: { user: any; onLogout
 
               {/* Footer actions */}
               <div className="card-bold border-2 p-2 space-y-1">
-                <a href="http://localhost:3001" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-muted-foreground hover:text-foreground hover:bg-brand-orange/5 transition-all w-full">
+                <a href={SITE_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-muted-foreground hover:text-foreground hover:bg-brand-orange/5 transition-all w-full">
                   <ExternalLink className="w-4 h-4" /> عرض الموقع
                 </a>
                 <button onClick={onLogout} className="flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-all w-full">
@@ -162,10 +202,10 @@ export default function AdminDashboard({ user, onLogout }: { user: any; onLogout
                 <h1 className="text-2xl font-black text-foreground">{activeLabel}</h1>
               </div>
               <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-orange to-brand-red text-white flex items-center justify-center text-xs">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-orange to-brand-red text-white flex items-center justify-center text-xs font-black">
                   {user?.name?.charAt(0) || 'O'}
                 </div>
-                {user?.name}
+                {user?.name || 'الأستاذ عمر'}
               </div>
             </div>
 
@@ -181,11 +221,13 @@ export default function AdminDashboard({ user, onLogout }: { user: any; onLogout
                   {active === 'posts' && <Posts token={token!} locale={locale} />}
                   {active === 'banners' && <Banners token={token!} locale={locale} />}
                   {active === 'quizzes' && <Quizzes token={token!} locale={locale} />}
+                  {active === 'quiz-results' && <QuizResults token={token!} locale={locale} />}
                   {active === 'students' && <Students token={token!} locale={locale} />}
                   {active === 'testimonials' && <Testimonials token={token!} locale={locale} />}
                   {active === 'subscribers' && <Subscribers token={token!} />}
                   {active === 'codes' && <Codes token={token!} />}
                   {active === 'bookings' && <Bookings token={token!} />}
+                  {active === 'contacts' && <Contacts token={token!} locale={locale} />}
                   {active === 'flashcards' && <Flashcards token={token!} locale={locale} />}
                   {active === 'settings' && <SettingsSection token={token!} user={user} />}
                   {active === 'notifications' && <NotificationSection token={token!} locale={locale} />}

@@ -111,8 +111,13 @@ export default function SettingsSection({
       <section className="card-bold p-6 border-2">
         <SectionHeader title="الملف الشخصي للأستاذ" subtitle="صورة الأستاذ عمر تظهر في الصفحة الرئيسية وصفحة من نحن" />
         <div className="mt-4 space-y-5">
-          <FormRow label="صورة الأستاذ">
-            <ImageField value={profile.teacher_image} onChange={(v) => setProfile({ ...profile, teacher_image: v || '' })} placeholder="رابط صورة الأستاذ" />
+          <FormRow label="صورة الأستاذ (تظهر في الرئيسية وصفحة من نحن)">
+            <ImageField
+              value={profile.teacher_image}
+              onChange={(v) => setProfile({ ...profile, teacher_image: v || '' })}
+              placeholder="انقر لرفع صورة الأستاذ عمر من الكمبيوتر أو اسحبها هنا"
+              aspectRatio="4/5"
+            />
           </FormRow>
           <LangInput label="نبذة عن الأستاذ (صفحة من نحن)" form={profile} field="about" onChange={(f) => setProfile(f as typeof profile)} textarea rows={4} />
           <div className="flex justify-end">

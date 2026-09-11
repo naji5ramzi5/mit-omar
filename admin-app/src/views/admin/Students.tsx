@@ -88,11 +88,15 @@ export default function StudentsSection({
                 <LevelBadge level={e.course.level} />
                 <div>
                   <p className="text-sm font-bold text-foreground">{fieldOf(e.course as any, 'title', locale)}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(e.activatedAt).toLocaleDateString('ar')}</p>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                    <span>البدء: {new Date(e.activatedAt).toLocaleDateString('ar')}</span>
+                    <span>•</span>
+                    <span>الانتهاء: {e.expiresAt ? new Date(e.expiresAt).toLocaleDateString('ar') : 'غير محدد (مفتوح)'}</span>
+                  </div>
                 </div>
               </div>
               <span className={`text-xs px-2.5 py-1 rounded-lg font-bold ${e.isActive ? 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300'}`}>
-                {e.isActive ? 'فعال' : 'منتهي'}
+                {e.isActive ? 'فعال' : 'منتهي الصلاحية'}
               </span>
             </div>
           ))}

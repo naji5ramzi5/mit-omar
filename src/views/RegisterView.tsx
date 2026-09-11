@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { UserPlus, Eye, EyeOff } from 'lucide-react';
 import { useAppStore } from '@/stores/app-store';
 import { t } from '@/lib/i18n';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 
 export default function RegisterView() {
   const { locale, navigate } = useAppStore();
@@ -74,6 +75,23 @@ export default function RegisterView() {
           {error && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm rounded-xl border border-red-100 dark:border-red-900/50 font-medium">{error}</div>
           )}
+
+          {/* Google Sign In / Sign Up */}
+          <div className="mb-6">
+            <GoogleSignInButton
+              text={locale === 'ar' ? 'التسجيل السريع باستخدام Google' : locale === 'de' ? 'Schnellregistrierung mit Google' : 'Quick sign up with Google'}
+              onError={(msg) => setError(msg)}
+            />
+            
+            <div className="relative my-6 text-center">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+              </div>
+              <span className="relative px-3 bg-white dark:bg-card text-xs text-muted-foreground font-semibold">
+                {locale === 'ar' ? 'أو إنشاء حساب بالبريد الإلكتروني' : locale === 'de' ? 'Oder mit E-Mail registrieren' : 'Or sign up with email'}
+              </span>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

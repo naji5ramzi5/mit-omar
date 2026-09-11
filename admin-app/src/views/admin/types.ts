@@ -75,6 +75,14 @@ export interface Quiz {
   descriptionDe?: string | null;
   descriptionEn?: string | null;
   isActive: boolean;
+  durationMinutes?: number;
+  passingScore?: number;
+  allowedAttempts?: number;
+  showDetailedResults?: boolean;
+  instructionsAr?: string;
+  instructionsDe?: string;
+  sections?: any[];
+  examType?: string;
   _count?: { questions: number; quizAttempts: number };
 }
 

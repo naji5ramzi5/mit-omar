@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { toast } from './toast';
 import { Mail, Trash2, Search } from 'lucide-react';
 import {
-  ConfirmDialog, EmptyState, ListLoading, SectionHeader,
+  ConfirmDialog, EmptyState, ListLoading, SectionHeader, inputClass,
 } from './ui';
 import { adminFetch, useAdminData } from './api';
 import { Subscriber } from './types';
@@ -60,7 +60,7 @@ export default function Subscribers({ token }: {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="ابحث بالبريد الإلكتروني..."
-          className="input-class pr-11"
+          className={`${inputClass} pr-11`}
         />
       </div>
 

@@ -11,7 +11,15 @@ export async function GET() {
 
     const settings: Record<string, string> = {};
     for (const row of data || []) {
-      if (row.key.startsWith('activation_code_')) continue;
+      if (
+        row.key.startsWith('activation_code_') ||
+        row.key.startsWith('code_meta_') ||
+        row.key.startsWith('course_intro_') ||
+        row.key.startsWith('secret_') ||
+        row.key.startsWith('admin_')
+      ) {
+        continue;
+      }
       settings[row.key] = row.value;
     }
 

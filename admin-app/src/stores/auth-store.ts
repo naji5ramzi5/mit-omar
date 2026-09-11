@@ -45,12 +45,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user, token, isLoading: false });
     localStorage.setItem('dmo-token', token);
     localStorage.setItem('dmo-user', JSON.stringify(user));
+    if (typeof document !== 'undefined') {
+      document.cookie = `dmo-token=${encodeURIComponent(token)}; path=/; max-age=${30 * 86400}; SameSite=Lax`;
+    }
   },
 
   logout: () => {
     set({ user: null, token: null, isLoading: false, unreadCount: 0 });
     localStorage.removeItem('dmo-token');
     localStorage.removeItem('dmo-user');
+    if (typeof document !== 'undefined') {
+      document.cookie = 'dmo-token=; path=/; max-age=0; SameSite=Lax';
+    }
   },
 
   isAuthenticated: () => !!get().token,

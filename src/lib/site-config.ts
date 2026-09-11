@@ -14,7 +14,7 @@ export const TELEGRAM_USERNAME = '';
 
 /** روابط السوشيال ميديا — اسم المفتاح يحدد الأيقونة */
 export const SOCIAL_LINKS: { name: 'Instagram' | 'Facebook' | 'Youtube' | 'Twitter'; url: string }[] = [
-  // مثال: { name: 'Instagram', url: 'https://instagram.com/deutsch.mit.omar' },
+  { name: 'Instagram', url: 'https://www.instagram.com/omar_wahab20' },
 ];
 
 export const WHATSAPP_URL = WHATSAPP_NUMBER ? `https://wa.me/${WHATSAPP_NUMBER}` : '';

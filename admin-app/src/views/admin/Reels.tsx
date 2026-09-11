@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from './toast';
 import { Plus, Pencil, Trash2, Clapperboard, ArrowUp, ArrowDown, Play } from 'lucide-react';
 import {
   PrimaryButton, GhostButton, Modal, ConfirmDialog, SectionHeader, EmptyState, ListLoading,
   Toggle, LangInput, ImageField, FormRow, inputClass,
 } from './ui';
+import { VideoUploader, resolveAdminMediaUrl } from './media-uploaders';
 import { adminFetch, fieldOf, useAdminData } from './api';
-import { toast } from './toast';
 
 interface Reel {
   id: string;
@@ -106,7 +107,7 @@ export default function ReelsSection({
                 <div className="w-12 h-20 rounded-xl overflow-hidden bg-secondary shrink-0 border border-border relative flex items-center justify-center">
                   {reel.thumbnail ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={reel.thumbnail} alt="" className="w-full h-full object-cover" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />
+                    <img src={resolveAdminMediaUrl(reel.thumbnail)} alt="" className="w-full h-full object-cover" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />
                   ) : (
                     <Play className="w-4 h-4 text-muted-foreground" />
                   )}
@@ -174,18 +175,41 @@ function ReelForm({ reel, saving, onSave, onClose }: {
       <LangInput label="العنوان" form={form} field="title" onChange={setForm} required />
       <LangInput label="الوصف" form={form} field="description" onChange={setForm} textarea rows={2} />
 
+      <FormRow label="فيديو الـ Reel التعليمي (عمودي 9:16)">
+        <VideoUploader
+          value={form.videoUrl}
+          onChange={(url, meta) => {
+            setForm((prev: any) => ({
+              ...prev,
+              videoUrl: url,
+              duration: meta?.duration ? Math.round(meta.duration * 60) : prev.duration,
+            }));
+          }}
+          placeholder="انقر لرفع فيديو Reel عمودي من الكمبيوتر أو اسحبه هنا"
+          isReel={true}
+        />
+      </FormRow>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormRow label="رابط الفيديو (URL) *">
-          <input type="text" required value={form.videoUrl || ''} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} placeholder="https://youtube.com/watch?v=… أو رابط mp4" className={inputClass} />
+        <FormRow label="صورة مصغرة مخصصة (Thumbnail)">
+          <ImageField
+            value={form.thumbnail || null}
+            onChange={(v) => setForm({ ...form, thumbnail: v })}
+            placeholder="انقر لرفع صورة الغلاف (9:16)"
+            aspectRatio="9/16"
+          />
         </FormRow>
-        <FormRow label="معرّف يوتيوب (اختياري)">
-          <input type="text" value={form.videoId || ''} onChange={(e) => setForm({ ...form, videoId: e.target.value })} placeholder="dQw4w9WgXcQ" className={inputClass} />
+        <FormRow label="معرّف يوتيوب Shorts (اختياري)">
+          <input
+            type="text"
+            value={form.videoId || ''}
+            onChange={(e) => setForm({ ...form, videoId: e.target.value })}
+            placeholder="مثال: dQw4w9WgXcQ"
+            className={inputClass}
+            dir="ltr"
+          />
         </FormRow>
       </div>
-
-      <FormRow label="صورة مصغرة (Thumbnail)">
-        <ImageField value={form.thumbnail || null} onChange={(v) => setForm({ ...form, thumbnail: v })} placeholder="رابط الصورة المصغرة (اختياري)" />
-      </FormRow>
 
       <div className="grid grid-cols-2 gap-4">
         <FormRow label="المدة (بالثواني)">

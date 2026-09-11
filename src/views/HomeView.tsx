@@ -2,40 +2,88 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, BookOpen, Users, Award, Clock, GraduationCap, Play, ArrowUpRight, MessageCircle, Target, Star, BookMarked, PenTool, Mic, Trophy, X } from 'lucide-react';
+import { 
+  ArrowLeft, ArrowRight, BookOpen, Users, Award, Clock, GraduationCap, Play, 
+  ArrowUpRight, MessageCircle, Target, Star, BookMarked, PenTool, Mic, Trophy, 
+  X, CheckCircle2, ShieldCheck, Sparkles, KeyRound, Calendar
+} from 'lucide-react';
 import { useAppStore } from '@/stores/app-store';
 import { t } from '@/lib/i18n';
 import { useCountUp } from '@/hooks/use-scroll';
 import Image from 'next/image';
 import SectionTitle from '@/components/SectionTitle';
+import { resolveMediaUrl } from '@/lib/media';
 
-interface Banner { id: string; titleAr: string; titleDe: string; titleEn: string; descriptionAr?: string; descriptionDe?: string; descriptionEn?: string; labelAr?: string; labelDe?: string; labelEn?: string; imageUrl?: string; order: number; }
-interface SiteStat { students: number; years: number; courses: number; lessons: number; }
-interface Post { id: string; titleAr: string; titleDe: string; titleEn: string; excerptAr?: string; excerptDe?: string; excerptEn?: string; imageUrl?: string; category?: string; createdAt: string; }
-interface Testimonial { id: string; nameAr: string; nameDe: string; nameEn: string; roleAr?: string; roleDe?: string; roleEn?: string; textAr: string; textDe: string; textEn: string; level?: string; rating: number; avatar?: string; }
-interface Reel { id: string; titleAr: string; titleDe: string; titleEn: string; videoUrl: string; videoId?: string; thumbnail?: string; duration: number; }
+interface Banner {
+  id: string;
+  titleAr: string; titleDe: string; titleEn: string;
+  descriptionAr?: string; descriptionDe?: string; descriptionEn?: string;
+  labelAr?: string; labelDe?: string; labelEn?: string;
+  imageUrl?: string;
+  order: number;
+}
+
+interface Course {
+  id: string;
+  titleAr: string; titleDe: string; titleEn: string;
+  descriptionAr: string; descriptionDe: string; descriptionEn: string;
+  level: string;
+  imageUrl?: string;
+  order: number;
+  introVideo?: { videoUrl: string | null; duration: number; isPublished: boolean } | null;
+  lessons?: { id: string; duration: number; isFree?: boolean }[];
+  _count?: { lessons: number };
+}
+
+interface SiteStat {
+  students: number;
+  years: number;
+  courses: number;
+  lessons: number;
+}
+
+interface Post {
+  id: string;
+  titleAr: string; titleDe: string; titleEn: string;
+  excerptAr?: string; excerptDe?: string; excerptEn?: string;
+  imageUrl?: string;
+  category?: string;
+  createdAt: string;
+}
+
+interface Testimonial {
+  id: string;
+  nameAr: string; nameDe: string; nameEn: string;
+  roleAr?: string; roleDe?: string; roleEn?: string;
+  textAr: string; textDe: string; textEn: string;
+  level?: string;
+  rating: number;
+  avatar?: string;
+}
+
+interface Reel {
+  id: string;
+  titleAr: string; titleDe: string; titleEn: string;
+  videoUrl: string;
+  videoId?: string;
+  thumbnail?: string;
+  duration: number;
+}
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1'];
-const berlinImages = ['/images/berlin/brandenburg-gate.png', '/images/berlin/reichstag.png', '/images/berlin/skyline.png', '/images/berlin/cathedral.png'];
-
-const whyOmar = [
-  { icon: BookMarked, titleKey: 'home_why_1_title', descKey: 'home_why_1_desc', gradient: 'from-emerald-500 to-teal-600' },
-  { icon: MessageCircle, titleKey: 'home_why_2_title', descKey: 'home_why_2_desc', gradient: 'from-blue-500 to-indigo-600' },
-  { icon: Target, titleKey: 'home_why_3_title', descKey: 'home_why_3_desc', gradient: 'from-brand-orange to-amber-500' },
-  { icon: Mic, titleKey: 'home_why_4_title', descKey: 'home_why_4_desc', gradient: 'from-brand-red to-rose-600' },
-];
-
-const features = [
-  { icon: BookOpen, titleKey: 'home_features_1_title', descKey: 'home_features_1_desc', color: 'text-brand-orange', bg: 'bg-brand-orange/10' },
-  { icon: MessageCircle, titleKey: 'home_features_2_title', descKey: 'home_features_2_desc', color: 'text-sky-600', bg: 'bg-sky-100 dark:bg-sky-500/10' },
-  { icon: PenTool, titleKey: 'home_features_3_title', descKey: 'home_features_3_desc', color: 'text-emerald-600', bg: 'bg-emerald-100 dark:bg-emerald-500/10' },
-  { icon: Trophy, titleKey: 'home_features_4_title', descKey: 'home_features_4_desc', color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-500/10' },
+const berlinImages = [
+  '/images/berlin/brandenburg-gate.png',
+  '/images/berlin/reichstag.png',
+  '/images/berlin/skyline.png',
+  '/images/berlin/cathedral.png'
 ];
 
 export default function HomeView() {
   const { locale, navigate } = useAppStore();
   const [banners, setBanners] = useState<Banner[]>([]);
-  const [stats, setStats] = useState<SiteStat>({ students: 500, years: 8, courses: 15, lessons: 200 });
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [activeCourseLevel, setActiveCourseLevel] = useState<string>('all');
+  const [stats, setStats] = useState<SiteStat>({ students: 12600, years: 8, courses: 15, lessons: 200 });
   const [posts, setPosts] = useState<Post[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [reels, setReels] = useState<Reel[]>([]);
@@ -50,37 +98,76 @@ export default function HomeView() {
   const lessonsCount = useCountUp(stats.lessons, 1800, true);
 
   const setCountersRef = (el: HTMLElement | null) => {
-    studentsCount.ref(el); yearsCount.ref(el); coursesCount.ref(el); lessonsCount.ref(el);
+    studentsCount.ref(el);
+    yearsCount.ref(el);
+    coursesCount.ref(el);
+    lessonsCount.ref(el);
   };
 
+  // ── Phase 1: Critical above-fold data via consolidated endpoint ──────────
   useEffect(() => {
-    fetch('/api/courses?includeLessons=false&limit=100').then(r => r.json()).then(data => { if (data.courses) setStats(s => ({ ...s, courses: data.courses.length })); }).catch(() => {});
-    fetch('/api/stats').then(r => r.json()).then(data => { if (data.students) setStats(s => ({ ...s, students: data.students })); if (data.years) setStats(s => ({ ...s, years: data.years })); if (data.lessons) setStats(s => ({ ...s, lessons: data.lessons })); }).catch(() => {});
-    fetch('/api/banners').then(r => r.json()).then(data => { if (data.banners?.length) setBanners(data.banners); }).catch(() => {});
-    fetch('/api/posts?limit=6').then(r => r.json()).then(data => { if (data.posts) setPosts(data.posts.slice(0, 6)); }).catch(() => {});
-    fetch('/api/testimonials').then(r => r.json()).then(data => { if (data.testimonials) setTestimonials(data.testimonials); }).catch(() => {});
-    fetch('/api/reels').then(r => r.json()).then(data => { if (data.reels) setReels(data.reels); }).catch(() => {});
-    fetch('/api/settings').then(r => r.json()).then(data => {
-      const s = data.settings as Record<string, string> | undefined;
-      if (!s) return;
-      setStats(prev => ({
-        students: parseInt(s.stats_students || '') || prev.students,
-        years: parseInt(s.stats_years || '') || prev.years,
-        courses: parseInt(s.stats_courses || '') || prev.courses,
-        lessons: parseInt(s.stats_lessons || '') || prev.lessons,
-      }));
-    }).catch(() => {});
+    fetch('/api/home')
+      .then(r => r.json())
+      .then(data => {
+        if (data.banners) setBanners(data.banners);
+        if (data.courses) {
+          setCourses(data.courses);
+        }
+        if (data.stats) {
+          setStats({
+            students: data.stats.students || 12600,
+            years: data.stats.years || 8,
+            courses: data.stats.courses || 15,
+            lessons: data.stats.lessons || 200,
+          });
+        }
+      })
+      .catch(() => {});
+
+    // ── Phase 2: Below-fold deferred data ─────────────────────────────────
+    // Delay so the browser prioritizes rendering critical content first
+    const deferredTimer = setTimeout(() => {
+      Promise.allSettled([
+        fetch('/api/posts?limit=6').then(r => r.json()).then(data => {
+          if (data.posts) setPosts(data.posts.slice(0, 6));
+        }),
+        fetch('/api/testimonials').then(r => r.json()).then(data => {
+          if (data.testimonials) setTestimonials(data.testimonials);
+        }),
+        fetch('/api/reels').then(r => r.json()).then(data => {
+          if (data.reels) setReels(data.reels);
+        }),
+      ]);
+    }, 800);
+
+    return () => clearTimeout(deferredTimer);
   }, []);
 
+
   const slideCount = banners.length > 0 ? banners.length : berlinImages.length;
-  const getBannerField = useCallback((banner: Banner, field: string) => { const localeKey = locale.charAt(0).toUpperCase() + locale.slice(1); return (banner as unknown as Record<string, unknown>)[`${field}${localeKey}`] as string || ''; }, [locale]);
-  const nextSlide = useCallback(() => { if (slideCount === 0) return; setCurrentSlide(p => (p + 1) % slideCount); }, [slideCount]);
-  const prevSlide = useCallback(() => { if (slideCount === 0) return; setCurrentSlide(p => (p - 1 + slideCount) % slideCount); }, [slideCount]);
+  const getBannerField = useCallback((banner: Banner, field: string) => {
+    const localeKey = locale.charAt(0).toUpperCase() + locale.slice(1);
+    return (banner as unknown as Record<string, unknown>)[`${field}${localeKey}`] as string || '';
+  }, [locale]);
+
+  const nextSlide = useCallback(() => {
+    if (slideCount === 0) return;
+    setCurrentSlide(p => (p + 1) % slideCount);
+  }, [slideCount]);
+
+  const prevSlide = useCallback(() => {
+    if (slideCount === 0) return;
+    setCurrentSlide(p => (p - 1 + slideCount) % slideCount);
+  }, [slideCount]);
 
   useEffect(() => {
     if (!isAutoPlaying || slideCount <= 1) return;
-    timerRef.current = setTimeout(() => { setCurrentSlide(p => (p + 1) % slideCount); }, 6000);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    timerRef.current = setTimeout(() => {
+      setCurrentSlide(p => (p + 1) % slideCount);
+    }, 6000);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [isAutoPlaying, currentSlide, slideCount]);
 
   const banner = banners.length > 0 ? banners[currentSlide] : null;
@@ -88,13 +175,20 @@ export default function HomeView() {
   const slideLabel = banner ? getBannerField(banner, 'label') : t(locale, `carousel_${currentSlide + 1}_label` as any);
   const slideTitle = banner ? getBannerField(banner, 'title') : t(locale, `carousel_${currentSlide + 1}_title` as any);
   const slideDesc = banner ? getBannerField(banner, 'description') : t(locale, `carousel_${currentSlide + 1}_desc` as any);
+  
   const isRtl = locale === 'ar';
   const BackArrow = isRtl ? ArrowRight : ArrowLeft;
   const FwdArrow = isRtl ? ArrowLeft : ArrowRight;
-  const getPostField = (obj: Record<string, unknown>, field: string) => { const localeKey = locale.charAt(0).toUpperCase() + locale.slice(1); return (obj[`${field}${localeKey}`] as string) || ''; };
-  const getTestimonialField = (obj: Record<string, unknown>, field: string) => { const localeKey = locale.charAt(0).toUpperCase() + locale.slice(1); return (obj[`${field}${localeKey}`] as string) || ''; };
 
-  const getReelField = (reel: Reel, field: string) => { const localeKey = locale.charAt(0).toUpperCase() + locale.slice(1); return ((reel as unknown as Record<string, unknown>)[`${field}${localeKey}`] as string) || ''; };
+  const getField = (obj: Record<string, unknown> | undefined, field: string) => {
+    if (!obj) return '';
+    const localeKey = locale.charAt(0).toUpperCase() + locale.slice(1);
+    return (obj[`${field}${localeKey}`] as string) || (obj[`${field}Ar`] as string) || (obj[`${field}De`] as string) || '';
+  };
+
+  const getPostField = (obj: Record<string, unknown>, field: string) => getField(obj, field);
+  const getTestimonialField = (obj: Record<string, unknown>, field: string) => getField(obj, field);
+  const getReelField = (reel: Reel, field: string) => getField(reel as unknown as Record<string, unknown>, field);
 
   const getReelEmbedUrl = (reel: Reel): string | null => {
     if (reel.videoId) return `https://www.youtube.com/embed/${reel.videoId}`;
@@ -112,64 +206,94 @@ export default function HomeView() {
   };
 
   const fade = (delay = 0) => ({
-    initial: { opacity: 0, y: 20 },
+    initial: { opacity: 0, y: 16 },
     whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true, margin: '-60px' } as const,
-    transition: { duration: 0.55, delay, ease: [0.4, 0, 0.2, 1] as const },
+    viewport: { once: true, margin: '-40px' } as const,
+    transition: { duration: 0.5, delay, ease: [0.4, 0, 0.2, 1] as const },
   });
 
+  const filteredCourses = activeCourseLevel === 'all'
+    ? courses
+    : courses.filter(c => c.level?.toUpperCase() === activeCourseLevel.toUpperCase());
+
   return (
-    <div>
-      {/* ============ HERO ============ */}
-      <div className="pt-[20px] pb-4">
+    <div className="space-y-0">
+      {/* ============================================================
+          PART 1: HERO CAROUSEL (CLEAN, NO DECORATIVE DOTS)
+      ============================================================ */}
+      <div className="pt-4 pb-4">
         <div className="container-bold">
-          <div className="relative overflow-hidden rounded-2xl md:rounded-[20px] min-h-[400px] md:min-h-[420px] lg:min-h-[460px] lg:max-h-[520px] shadow-lg ring-1 ring-black/5">
+          <div className="relative overflow-hidden rounded-2xl md:rounded-[22px] min-h-[380px] md:min-h-[420px] lg:min-h-[450px] lg:max-h-[500px] shadow-lg ring-1 ring-black/5">
             <AnimatePresence mode="wait">
-              <motion.div key={currentSlide} initial={{ opacity: 0, scale: 1.06 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 1.2, ease: 'easeOut' }} className="absolute inset-0">
+              <motion.div
+                key={currentSlide}
+                initial={{ opacity: 0, scale: 1.04 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.1, ease: 'easeOut' }}
+                className="absolute inset-0"
+              >
                 <Image src={currentImage} alt="" fill sizes="100vw" priority className="object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20" />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/25" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-transparent" />
               </motion.div>
             </AnimatePresence>
 
-            {/* Content */}
-            <div className="relative z-10 h-full flex flex-col justify-center pb-10 pt-10">
+            {/* Content (Clean, No orange dots next to labels) */}
+            <div className="relative z-10 h-full flex flex-col justify-center pb-8 pt-8 md:pb-10 md:pt-10">
               <div className="w-full px-6 sm:px-8 lg:px-10 max-w-3xl">
                 <AnimatePresence mode="wait">
-                  <motion.div key={currentSlide} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}>
-                    <div className="inline-flex items-center gap-2.5 rounded-full px-5 py-2.5 mb-3 border border-white/15 bg-white/10 backdrop-blur-md shadow-sm">
-                      <span className="w-3 h-3 rounded-full bg-brand-orange shadow-[0_0_12px_rgba(232,93,38,0.8)]" />
+                  <motion.div
+                    key={currentSlide}
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
+                  >
+                    {/* Clean Eyebrow Badge — Pure text, zero decorative dots */}
+                    <div className="inline-flex items-center rounded-full px-4 py-1.5 mb-3 border border-white/15 bg-white/10 backdrop-blur-md shadow-xs">
                       <span className="text-white text-[11px] font-bold tracking-[0.14em] uppercase">{slideLabel}</span>
                     </div>
-                    <h1 className="font-display text-white font-[800] leading-[1.04] tracking-[-0.02em] mb-2.5 text-balance drop-shadow-[0_4px_20px_rgba(0,0,0,0.4)]" style={{ fontSize: 'clamp(1.9rem, 4vw, 3rem)', textShadow: '0 2px 20px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.4)' }}>
+
+                    <h1
+                      className="font-display text-white font-black leading-[1.08] tracking-tight mb-3 text-balance drop-shadow-[0_4px_16px_rgba(0,0,0,0.5)]"
+                      style={{ fontSize: 'clamp(1.85rem, 3.8vw, 2.9rem)' }}
+                    >
                       {slideTitle}
                     </h1>
 
-                    <p className="leading-relaxed mb-4 max-w-[560px] text-[15px]" style={{ color: 'rgba(255,255,255,0.72)' }}>
+                    <p className="leading-relaxed mb-5 max-w-[540px] text-sm sm:text-base text-white/80">
                       {slideDesc}
                     </p>
 
-                    <div className="flex flex-wrap items-center gap-3 mb-5">
-                      <button onClick={() => navigate('courses')} className="group inline-flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold tracking-wide text-white rounded-xl shadow-md shadow-brand-orange/20 hover:shadow-brand-orange/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200" style={{ background: 'linear-gradient(135deg, #E85D26, #DC3545)' }}>
+                    <div className="flex flex-wrap items-center gap-3 mb-6">
+                      <button
+                        onClick={() => navigate('courses')}
+                        className="group inline-flex items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-bold tracking-wide text-white rounded-xl shadow-md shadow-brand-orange/20 hover:shadow-brand-orange/35 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200"
+                        style={{ background: 'linear-gradient(135deg, #E85D26, #DC3545)' }}
+                      >
                         {t(locale, 'hero_cta_primary')}
                         <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                       </button>
-                      <button onClick={() => navigate('online_booking')} className="group inline-flex items-center gap-2 px-4 py-2.5 text-[13px] font-semibold tracking-wide text-white rounded-xl border border-white/15 bg-white/10 backdrop-blur-xl hover:bg-white/15 transition-all duration-200">
-                        <CalendarIcon className="w-3.5 h-3.5" />
+                      <button
+                        onClick={() => navigate('online_booking')}
+                        className="group inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium tracking-wide text-white rounded-xl border border-white/20 bg-white/10 backdrop-blur-xl hover:bg-white/20 transition-all duration-200"
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
                         {t(locale, 'nav_online_booking')}
                       </button>
                     </div>
 
-                    <div className="inline-flex items-center rounded-xl bg-white/[0.07] backdrop-blur-xl border border-white/10 overflow-hidden shadow-sm">
+                    <div className="inline-flex items-center rounded-xl bg-white/[0.08] backdrop-blur-xl border border-white/10 overflow-hidden shadow-xs">
                       {[
-                        { v: `${stats.students}+`, l: t(locale, 'stats_students') },
+                        { v: `${stats.students}+`, l: 'متابع وطالب' },
                         { v: `${stats.years}+`, l: t(locale, 'stats_years') },
                         { v: `${stats.courses}+`, l: t(locale, 'stats_courses') },
                       ].map((s, i, arr) => (
-                        <div key={i} className={`flex items-center gap-2.5 px-3.5 sm:px-4 py-2.5 ${i !== arr.length - 1 ? 'border-e border-white/10' : ''}`}>
+                        <div key={i} className={`flex items-center gap-2.5 px-3.5 sm:px-4 py-2 ${i !== arr.length - 1 ? 'border-e border-white/10' : ''}`}>
                           <div>
-                            <p className="font-display text-[15px] font-extrabold leading-none text-white number-display">{s.v}</p>
-                            <p className="text-[10px] font-semibold tracking-wide mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>{s.l}</p>
+                            <p className="font-display text-sm sm:text-base font-extrabold leading-none text-white number-display">{s.v}</p>
+                            <p className="text-[10px] font-medium tracking-wide mt-0.5 text-white/60">{s.l}</p>
                           </div>
                         </div>
                       ))}
@@ -179,19 +303,35 @@ export default function HomeView() {
               </div>
 
               {/* Carousel controls */}
-              <div className="flex items-center gap-2.5 mt-4 px-4 sm:px-6 lg:px-8">
-                <button onClick={prevSlide} aria-label="السابق" className="w-10 h-10 rounded-full border border-white/15 bg-white/10 backdrop-blur-xl flex items-center justify-center text-white hover:bg-white/15 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg">
+              <div className="flex items-center gap-2 mt-4 px-4 sm:px-6 lg:px-8">
+                <button
+                  onClick={prevSlide}
+                  aria-label="السابق"
+                  className="w-9 h-9 rounded-full border border-white/15 bg-white/10 backdrop-blur-xl flex items-center justify-center text-white hover:bg-white/20 hover:scale-105 active:scale-95 transition-all duration-200"
+                >
                   <BackArrow className="w-4 h-4" />
                 </button>
-                <div className="flex items-center gap-2 rounded-full px-3 py-2 bg-black/20 backdrop-blur-xl border border-white/10">
+                <div className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 bg-black/25 backdrop-blur-xl border border-white/10">
                   {Array.from({ length: slideCount }).map((_, i) => (
-                    <button key={i} onClick={() => setCurrentSlide(i)} onMouseEnter={() => setIsAutoPlaying(false)} onMouseLeave={() => setIsAutoPlaying(true)}
+                    <button
+                      key={i}
+                      onClick={() => setCurrentSlide(i)}
+                      onMouseEnter={() => setIsAutoPlaying(false)}
+                      onMouseLeave={() => setIsAutoPlaying(true)}
                       aria-label={`Slide ${i + 1}`}
                       className="h-1.5 rounded-full transition-all duration-300"
-                      style={{ width: i === currentSlide ? '28px' : '8px', background: i === currentSlide ? 'linear-gradient(90deg, #E85D26, #DC3545)' : 'rgba(255,255,255,0.35)' }} />
+                      style={{
+                        width: i === currentSlide ? '24px' : '6px',
+                        background: i === currentSlide ? 'linear-gradient(90deg, #E85D26, #DC3545)' : 'rgba(255,255,255,0.3)',
+                      }}
+                    />
                   ))}
                 </div>
-                <button onClick={nextSlide} aria-label="التالي" className="w-10 h-10 rounded-full border border-white/15 bg-white/10 backdrop-blur-xl flex items-center justify-center text-white hover:bg-white/15 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg">
+                <button
+                  onClick={nextSlide}
+                  aria-label="التالي"
+                  className="w-9 h-9 rounded-full border border-white/15 bg-white/10 backdrop-blur-xl flex items-center justify-center text-white hover:bg-white/20 hover:scale-105 active:scale-95 transition-all duration-200"
+                >
                   <FwdArrow className="w-4 h-4" />
                 </button>
               </div>
@@ -200,201 +340,587 @@ export default function HomeView() {
         </div>
       </div>
 
-      {/* ============ VALUE BAND ============ */}
-      <section className="py-10 md:py-12">
+      {/* ============================================================
+          PART 2: ELEVATED & PREMIUM CATEGORIES (التصنيفات والمسارات)
+      ============================================================ */}
+      <section className="py-8 md:py-12 bg-transparent">
         <div className="container-bold">
-          <div className="relative overflow-hidden rounded-2xl bg-brand-warm dark:bg-accent px-5 sm:px-8 lg:px-10 py-8 lg:py-10">
-            {/* Soft organic brand shapes */}
-            <div className="absolute -top-24 -start-16 w-72 h-72 rounded-full bg-brand-orange/10 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -end-10 w-72 h-72 rounded-full bg-brand-red/10 blur-3xl pointer-events-none" />
-            <div className="relative grid lg:grid-cols-[0.9fr_1.1fr] gap-8 lg:gap-10 items-center">
-              <div>
-                <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 mb-4 border border-brand-orange/20 bg-brand-orange/5">
-                  <span className="w-1 h-1 bg-brand-orange rounded-full" />
-                  <span className="text-brand-orange text-[10px] font-bold tracking-wide uppercase">{t(locale, 'home_why_omar')}</span>
-                </span>
-                <h2 className="font-display text-xl sm:text-2xl lg:text-[1.7rem] font-black text-foreground leading-tight mb-2.5 text-balance">
-                  {t(locale, 'home_features_lead')}
-                </h2>
-                <p className="text-muted-foreground leading-relaxed text-[13px] max-w-md">{t(locale, 'home_features_lead_desc')}</p>
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2.5 mb-6 md:mb-8">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-orange/10 text-brand-orange text-xs font-bold mb-2 border border-brand-orange/15 shadow-xs">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>مسارات التعلم المتخصصة</span>
               </div>
-              <div className="grid sm:grid-cols-2 gap-x-6 gap-y-5">
-                {features.map((f, i) => (
-                  <motion.div key={i} {...fade(i * 0.06)} className="flex items-start gap-2.5">
-                    <f.icon className={`w-4 h-4 mt-0.5 shrink-0 ${f.color}`} />
-                    <div className="min-w-0">
-                      <p className="font-display font-bold text-[13px] text-foreground leading-tight">{t(locale, f.titleKey as any)}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{t(locale, f.descKey as any)}</p>
+              <h2 className="font-display text-xl sm:text-2xl lg:text-3xl font-black text-foreground tracking-tight">
+                التصنيفات والخدمات التعليمية
+              </h2>
+            </div>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-sm">
+              اختر مسارك التعليمي المفضل وابدأ فوراً بدراسة اللغة الألمانية واجتياز الامتحانات
+            </p>
+          </div>
+
+          {/* Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4.5">
+            {[
+              {
+                icon: BookOpen,
+                tag: '5 مستويات',
+                title: 'دورات المستويات (A1–C1)',
+                desc: 'تأسيس شامل للقواعد والمحادثة وفق الإطار الأوروبي',
+                action: () => {
+                  const el = document.getElementById('educational-pathways');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  else navigate('courses');
+                },
+                gradient: 'from-amber-500 to-orange-600',
+                glowColor: 'hover:shadow-amber-500/15',
+                borderColor: 'hover:border-amber-500/40',
+                bgTint: 'from-amber-500/[0.08] to-transparent',
+                badgeBg: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20',
+                btnColor: 'text-amber-600 dark:text-amber-400',
+              },
+              {
+                icon: Award,
+                tag: 'امتحانات دولية',
+                title: 'امتحانات Goethe & Telc',
+                desc: 'نماذج وتدريبات مكثفة على امتحانات السفارة ولم الشمل',
+                action: () => navigate('exams'),
+                gradient: 'from-blue-600 to-indigo-700',
+                glowColor: 'hover:shadow-blue-500/15',
+                borderColor: 'hover:border-blue-500/40',
+                bgTint: 'from-blue-500/[0.08] to-transparent',
+                badgeBg: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20',
+                btnColor: 'text-blue-600 dark:text-blue-400',
+              },
+              {
+                icon: Trophy,
+                tag: 'تقييم فوري',
+                title: 'الاختبارات التفاعلية',
+                desc: 'اختبر مستواك بدقة مع تصحيح ذكي للدرجات',
+                action: () => navigate('exams'),
+                gradient: 'from-emerald-500 to-teal-700',
+                glowColor: 'hover:shadow-emerald-500/15',
+                borderColor: 'hover:border-emerald-500/40',
+                bgTint: 'from-emerald-500/[0.08] to-transparent',
+                badgeBg: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+                btnColor: 'text-emerald-600 dark:text-emerald-400',
+              },
+              {
+                icon: BookMarked,
+                tag: 'ذاكرة وتكرار',
+                title: 'بطاقات الحفظ السريع',
+                desc: 'أهم الكلمات والتراكيب مع النطق الصوتي والأمثلة',
+                action: () => navigate('flashcards'),
+                gradient: 'from-purple-600 to-fuchsia-600',
+                glowColor: 'hover:shadow-purple-500/15',
+                borderColor: 'hover:border-purple-500/40',
+                bgTint: 'from-purple-500/[0.08] to-transparent',
+                badgeBg: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/20',
+                btnColor: 'text-purple-600 dark:text-purple-400',
+              },
+              {
+                icon: Calendar,
+                tag: 'جلسات خاصة',
+                title: 'حجز درس أونلاين',
+                desc: 'تدريب مباشر ومحادثة فردية 1:1 مع الأستاذ عمر',
+                action: () => navigate('online_booking'),
+                gradient: 'from-rose-500 to-red-600',
+                glowColor: 'hover:shadow-rose-500/15',
+                borderColor: 'hover:border-rose-500/40',
+                bgTint: 'from-rose-500/[0.08] to-transparent',
+                badgeBg: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/20',
+                btnColor: 'text-rose-600 dark:text-rose-400',
+              },
+            ].map((cat, i) => (
+              <motion.div
+                key={i}
+                {...fade(i * 0.05)}
+                onClick={cat.action}
+                className={`group relative p-5 rounded-2xl border border-border/70 bg-card hover:shadow-xl ${cat.glowColor} ${cat.borderColor} hover:-translate-y-1.5 active:scale-[0.99] transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden`}
+              >
+                {/* Subtle top ambient glow */}
+                <div className={`absolute top-0 inset-x-0 h-24 bg-gradient-to-b ${cat.bgTint} pointer-events-none opacity-60 group-hover:opacity-100 transition-opacity duration-300`} />
+
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${cat.gradient} flex items-center justify-center text-white shadow-md group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}>
+                      <cat.icon className="w-5 h-5" />
                     </div>
-                  </motion.div>
-                ))}
-              </div>
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md border ${cat.badgeBg}`}>
+                      {cat.tag}
+                    </span>
+                  </div>
+
+                  <h3 className="font-display font-bold text-sm sm:text-base text-foreground mb-1.5 group-hover:text-brand-orange transition-colors">
+                    {cat.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                    {cat.desc}
+                  </p>
+                </div>
+
+                <div className={`relative z-10 pt-3 mt-3.5 border-t border-border/50 flex items-center justify-between text-xs font-bold ${cat.btnColor}`}>
+                  <span>دخول المسار</span>
+                  <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center group-hover:bg-brand-orange group-hover:text-white transition-colors duration-200">
+                    <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================
+          PART 2, 4, 5, 6: "المسارات التعليمية" (PROFESSIONAL CATALOG)
+      ============================================================ */}
+      <section id="educational-pathways" className="py-8 md:py-12 bg-transparent">
+        <div className="container-bold">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="font-display text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
+                المسارات التعليمية
+              </h2>
+              <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+                دورات منهجية متكاملة وفق الإطار الأوروبي المشترك (CEFR)
+              </p>
+            </div>
+
+            {/* Level Filter Tabs */}
+            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-secondary/60 border border-border/60">
+              <button
+                onClick={() => setActiveCourseLevel('all')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
+                  activeCourseLevel === 'all'
+                    ? 'bg-gradient-to-r from-brand-orange to-brand-red text-white shadow-sm shadow-brand-orange/25'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
+                }`}
+              >
+                الكل
+              </button>
+              {LEVELS.map(lvl => {
+                const count = courses.filter(c => c.level?.toUpperCase() === lvl).length;
+                return (
+                  <button
+                    key={lvl}
+                    onClick={() => setActiveCourseLevel(lvl)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
+                      activeCourseLevel === lvl
+                        ? 'bg-gradient-to-r from-brand-orange to-brand-red text-white shadow-sm shadow-brand-orange/25'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-background/80'
+                    }`}
+                  >
+                    {lvl} {count > 0 && <span className="opacity-75 text-[10px] font-mono">({count})</span>}
+                  </button>
+                );
+              })}
             </div>
           </div>
+
+          {/* Courses Cards Grid */}
+          {filteredCourses.length > 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredCourses.map((course, idx) => {
+                const courseObj = course as unknown as Record<string, unknown>;
+                const totalDuration = course.lessons?.reduce((acc, l) => acc + (l.duration || 0), 0) || 0;
+                const lessonsCount = course.lessons?.length || 0;
+                const hasFreeLesson = course.lessons?.some(l => l.isFree);
+
+                return (
+                  <motion.div
+                    key={course.id}
+                    {...fade(idx * 0.04)}
+                    className="card-bold group rounded-xl overflow-hidden border border-border/80 hover:border-brand-orange/30 hover:shadow-lg transition-all duration-200 flex flex-col justify-between bg-card"
+                  >
+                    <div>
+                      {/* Course Image & Non-Green Institutional Badge */}
+                      <div className="relative aspect-[16/9] w-full bg-slate-900 overflow-hidden">
+                        <Image
+                          src={resolveMediaUrl(course.imageUrl) || '/images/berlin/brandenburg-gate.png'}
+                          alt={getField(courseObj, 'title')}
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+
+                        {/* Top Badges (Institutional Palette: Navy & Controlled Brand Accent) */}
+                        <div className="absolute top-3 start-3 flex items-center gap-1.5">
+                          <span className="level-badge shadow-xs font-bold text-[11px] px-2.5 py-0.5">
+                            {course.level}
+                          </span>
+                          {hasFreeLesson && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-900/90 dark:bg-slate-800 text-white border border-slate-700 shadow-xs flex items-center gap-1">
+                              <Star className="w-2.5 h-2.5 text-brand-orange fill-brand-orange" />
+                              الدرس مجاني
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Direct Play Intro Video Pill */}
+                        <button
+                          onClick={() => navigate('course-detail', { id: course.id })}
+                          aria-label="مشاهدة الفيديو التعريفي"
+                          className="absolute inset-0 m-auto w-11 h-11 rounded-full bg-slate-900/85 hover:bg-brand-orange text-white flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
+                        >
+                          <Play className="w-4 h-4 fill-current ms-0.5" />
+                        </button>
+                      </div>
+
+                      {/* Course Info */}
+                      <div className="p-4 space-y-2">
+                        <h3 className="font-display font-bold text-base text-foreground group-hover:text-brand-orange transition-colors line-clamp-1">
+                          {getField(courseObj, 'title')}
+                        </h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                          {getField(courseObj, 'description') || 'منهاج تدريبي مكثف لاحتراف اللغة الألمانية واجتياز الامتحانات الرسمية.'}
+                        </p>
+
+                        {/* Meta Info */}
+                        <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border/60">
+                          <span className="flex items-center gap-1 font-medium">
+                            <BookOpen className="w-3.5 h-3.5 text-brand-orange" />
+                            {lessonsCount} درس
+                          </span>
+                          <span className="flex items-center gap-1 font-medium">
+                            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                            {Math.round(totalDuration / 60)} ساعة
+                          </span>
+                          <span className="flex items-center gap-1 font-medium text-brand-orange">
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            فيديو تعريفي
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <div className="p-4 pt-0">
+                      <button
+                        onClick={() => navigate('course-detail', { id: course.id })}
+                        className="w-full py-2.5 px-3 rounded-lg bg-secondary hover:bg-slate-900 hover:text-white dark:hover:bg-brand-orange dark:hover:text-white font-bold text-xs text-foreground flex items-center justify-center gap-2 border border-border/70 transition-all duration-150"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>مشاهدة الفيديو وتفاصيل الدورة</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-10 p-6 rounded-xl bg-secondary/40 border border-border">
+              <BookOpen className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
+              <p className="text-muted-foreground text-xs font-semibold mb-3">
+                لا توجد دورات مدرجة حالياً في المستوى {activeCourseLevel}.
+              </p>
+              <button
+                onClick={() => setActiveCourseLevel('all')}
+                className="btn-bold-primary text-xs py-1.5 px-3"
+              >
+                عرض كافة الدورات
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* ============ WHY OMAR ============ */}
-      <section className="py-10 md:py-14 bg-brand-warm dark:bg-accent relative overflow-hidden">
+      {/* ============================================================
+          PART 7: SEAMLESS BACKGROUND (NO ARTIFICIAL HORIZONTAL DIVIDERS)
+      ============================================================ */}
+      <section className="py-10 md:py-14 bg-transparent relative">
         <div className="container-bold">
-          <motion.div {...fade(0)}>
-            <SectionTitle badge={t(locale, 'home_why_omar')} title={t(locale, 'home_why_omar')} subtitle={t(locale, 'home_why_subtitle')} />
-          </motion.div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            {whyOmar.map((item, i) => (
-              <motion.div key={i} {...fade(i * 0.07)}>
-                <div className="group h-full p-4 md:p-5 rounded-2xl border border-border/60 bg-card hover:border-brand-orange/30 hover:-translate-y-0.5 transition-all duration-300 shadow-sm">
-                  <div className={`w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-3 shadow-sm group-hover:scale-105 transition-transform duration-300`}>
-                    <item.icon className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                  </div>
-                  <h3 className="font-display font-bold text-foreground mb-1 text-sm">{t(locale, item.titleKey as any)}</h3>
-                  <p className="text-[13px] text-muted-foreground leading-relaxed">{t(locale, item.descKey as any)}</p>
+          <div className="text-center mb-8">
+            <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground mb-2">
+              منظومة تعليمية متكاملة تضمن لك النجاح
+            </h2>
+            <p className="text-muted-foreground text-xs sm:text-sm max-w-lg mx-auto leading-relaxed">
+              نجمع بين الدقة اللغوية الأكاديمية والتطبيق العملي الواقعي للوصول إلى الطلاقة واجتياز الامتحانات.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              {
+                icon: BookMarked,
+                title: 'مناهج معتمدة دولياً',
+                desc: 'محتوى متطابق تماماً مع معايير Goethe و Telc و ÖSD الرسمية من A1 حتى C1.',
+              },
+              {
+                icon: Play,
+                title: 'فيديو تعريفي ودرس مجاني',
+                desc: 'شاهد الفيديو التمهيدي والدرس الأول لأي دورة مجاناً بالكامل قبل الاشتراك.',
+              },
+              {
+                icon: Clock,
+                title: 'مرونة دراسة 24/7',
+                desc: 'تعلم في الوقت الذي يناسبك ومن أي جهاز مع حفظ تلقائي لمستوى تقدمك.',
+              },
+              {
+                icon: MessageCircle,
+                title: 'متابعة واستفسارات مباشرة',
+                desc: 'قنوات تواصل مباشرة مع الأستاذ عمر وهاب للإجابة عن أسئلتك وتصحيح التمارين.',
+              },
+            ].map((f, i) => (
+              <motion.div
+                key={i}
+                {...fade(i * 0.05)}
+                className="p-5 rounded-xl border border-border/70 bg-card hover:border-brand-orange/30 hover:shadow-sm transition-all duration-200"
+              >
+                <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center text-foreground mb-3">
+                  <f.icon className="w-5 h-5 text-brand-orange" />
                 </div>
+                <h3 className="font-display font-bold text-sm text-foreground mb-1.5">
+                  {f.title}
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {f.desc}
+                </p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ============ TEACHER ============ */}
-      <section className="py-10 md:py-14 bg-card relative overflow-hidden">
+      {/* ============================================================
+          PART 8, 9, 10, 11: TEACHER SECTION — "الأستاذ عمر وهاب"
+          Hierarchy: الأستاذ عمر وهاب -> تعليم أكاديمي -> خبرة 8 سنوات -> details
+      ============================================================ */}
+      <section className="py-10 md:py-14 bg-transparent relative overflow-hidden">
         <div className="container-bold">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            <motion.div {...fade(0)} className="relative max-w-[420px] mx-auto lg:mx-0 w-full">
-              <div className="relative rounded-2xl overflow-hidden shadow-md ring-1 ring-border bg-brand-warm dark:bg-accent">
-                <div className="aspect-[4/5] w-full">
-                  <Image src="/images/teacher/omar-hero.png" alt="Omar — الأستاذ عمر" fill sizes="(max-width:1024px) 100vw, 45vw" className="object-cover object-top" priority />
+          <div className="grid lg:grid-cols-12 gap-8 items-center">
+            {/* Teacher Image with Well-Cropped Responsive Framing */}
+            <motion.div {...fade(0)} className="lg:col-span-5 relative max-w-[360px] mx-auto lg:mx-0 w-full">
+              <div className="relative rounded-2xl overflow-hidden shadow-md border border-border bg-slate-900">
+                <div className="aspect-[4/5] w-full relative">
+                  <Image
+                    src="/images/teacher/omar-hero.png"
+                    alt="الأستاذ عمر وهاب"
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 360px"
+                    className="object-cover object-top"
+                    priority
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
                 </div>
-                <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-black/55 via-black/15 to-transparent" />
-              </div>
-              <div className="absolute -bottom-3 start-4 sm:start-6 px-3 py-2.5 rounded-xl bg-card border border-border shadow-md">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center">
-                    <Award className="w-3.5 h-3.5 text-white" />
-                  </div>
+                <div className="absolute bottom-0 inset-x-0 p-3.5 bg-black/65 backdrop-blur-md flex items-center justify-between text-white text-xs">
                   <div>
-                    <p className="font-display text-sm font-extrabold text-gradient leading-none">{t(locale, 'home_teacher_years')}</p>
-                    <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">{t(locale, 'home_teacher_years_sub')}</p>
+                    <p className="font-bold">الأستاذ عمر وهاب</p>
+                    <p className="text-[11px] text-white/70 font-mono">Berlin & Damascus</p>
                   </div>
+                  <span className="px-2.5 py-1 rounded-md bg-brand-orange text-white font-mono font-bold text-xs">
+                    {stats.years}+ سنوات خبرة
+                  </span>
                 </div>
               </div>
             </motion.div>
 
-            <motion.div {...fade(0.1)}>
-              <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 mb-4 border border-brand-orange/20 bg-brand-orange/5">
-                <span className="w-1 h-1 bg-brand-orange rounded-full" />
-                <span className="text-brand-orange text-[10px] font-bold tracking-wide uppercase">{t(locale, 'home_teacher_badge')}</span>
+            {/* Teacher Editorial Story with Formal Presentation */}
+            <motion.div {...fade(0.1)} className="lg:col-span-7 space-y-3.5">
+              {/* PART 9: Sophisticated "تعليم أكاديمي" Badge */}
+              <div className="inline-flex items-center gap-1.5 rounded-md px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300/80 dark:border-slate-700 text-xs font-bold tracking-wide">
+                <GraduationCap className="w-3.5 h-3.5 text-brand-orange" />
+                <span>تعليم أكاديمي</span>
               </div>
-              <h2 className="font-display text-2xl sm:text-3xl font-black text-foreground leading-tight mb-3 text-balance">
-                {t(locale, 'home_teacher_title_1')} <span className="text-gradient">{t(locale, 'home_teacher_title_2')}</span>
+
+              {/* PART 8: Formal Name */}
+              <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-foreground leading-snug">
+                الأستاذ عمر وهاب
               </h2>
-              <p className="text-muted-foreground leading-relaxed text-sm mb-6">
-                {t(locale, 'home_teacher_desc')}
+
+              {/* PART 10: Prominently visible "خبرة 8 سنوات" figure */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-brand-orange/10 border border-brand-orange/25 text-brand-orange">
+                <Award className="w-4 h-4" />
+                <span className="text-sm font-black font-display tracking-wide">
+                  خبرة 8 سنوات في تدريس اللغة الألمانية والتحضير لامتحانات Goethe و Telc
+                </span>
+              </div>
+
+              <p className="text-muted-foreground leading-relaxed text-sm">
+                مدرس لغة ألمانية معتمد حاصل على بكالوريوس في اللغة الألمانية وآدابها (جامعة دمشق) وبكالوريوس في تكنولوجيا المعلومات والبرمجة (الجامعة الافتراضية السورية). يمنحه هذا التخصص المزدوج أسلوباً تحليلياً دقيقاً في تفكيك قواعد الألمانية الصعبة وتحويلها إلى معادلات منطقية ميسرة تضمن اجتياز الامتحانات الرسمية بأعلى الدرجات.
               </p>
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                {[{ icon: GraduationCap, title: t(locale, 'home_teacher_stat_1'), count: t(locale, 'home_teacher_stat_3') }, { icon: Target, title: t(locale, 'home_teacher_stat_2') }, { icon: Users, title: t(locale, 'home_teacher_stat_3') }, { icon: BookOpen, title: t(locale, 'home_teacher_stat_4') }].map((item, i) => (
-                  <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/60 bg-card">
-                    <div className="w-8 h-8 rounded-lg bg-brand-orange/10 flex items-center justify-center shrink-0">
-                      <item.icon className="w-3.5 h-3.5 text-brand-orange" />
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                {[
+                  { icon: Award, label: 'خبرة تدريس متخصصة', val: '8+ سنوات' },
+                  { icon: Users, label: 'متابع وطالب مؤهل', val: '12,600+' },
+                  { icon: Target, label: 'نسبة النجاح الرسمية', val: '95%' },
+                  { icon: ShieldCheck, label: 'معايير الإطار الأوروبي', val: 'CEFR A1–C1' },
+                ].map((st, i) => (
+                  <div key={i} className="p-2.5 rounded-xl border border-border/70 bg-card flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-brand-orange shrink-0">
+                      <st.icon className="w-4 h-4" />
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="font-display text-[13px] font-bold text-foreground leading-tight">{item.title}</h3>
-                      <p className="text-[11px] text-muted-foreground">{item.count}</p>
+                    <div>
+                      <p className="text-xs font-bold text-foreground font-mono">{st.val}</p>
+                      <p className="text-[10px] text-muted-foreground">{st.label}</p>
                     </div>
                   </div>
                 ))}
               </div>
-              <button onClick={() => navigate('about')} className="group inline-flex items-center gap-2 text-sm font-bold text-brand-orange hover:text-brand-orange-dark transition-colors">
-                {t(locale, 'hero_cta_secondary')}
-                <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </button>
+
+              <div className="pt-2 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => navigate('about')}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs hover:opacity-90 transition-opacity"
+                >
+                  <span>الملف الأكاديمي الكامل للأستاذ</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => navigate('online_booking')}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border hover:bg-secondary text-foreground font-bold text-xs transition-colors"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-brand-orange" />
+                  <span>حجز استشارة أو درس أونلاين</span>
+                </button>
+              </div>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* ============ STATS ============ */}
-      <section className="py-8 md:py-10 bg-card border-y border-border/60 dark:border-border" ref={setCountersRef}>
-        <div className="container-bold">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {[
-              { count: yearsCount.count, label: t(locale, 'stats_years'), icon: Award },
-              { count: coursesCount.count, label: t(locale, 'stats_courses'), icon: BookOpen },
-              { count: lessonsCount.count, label: t(locale, 'stats_lessons'), icon: Clock },
-              { count: studentsCount.count, label: t(locale, 'stats_students'), icon: Users },
-            ].map((item, i) => (
-              <motion.div key={i} {...fade(i * 0.06)} className="flex items-center gap-3">
-                <div className="w-9 h-9 shrink-0 rounded-xl bg-brand-orange/8 flex items-center justify-center">
-                  <item.icon className="w-4 h-4 text-brand-orange" />
-                </div>
-                <div>
-                  <div className="font-display text-xl md:text-2xl font-extrabold text-foreground tracking-tight leading-none number-display">
-                    {item.count}<span className="text-gradient">+</span>
+      {/* ============================================================
+          PART 12: COMMUNITY & SOCIAL PROOF WITH HARMONIZED BUTTONS
+      ============================================================ */}
+      <section className="py-10 md:py-14 bg-slate-900 text-white relative overflow-hidden">
+        <div className="container-bold relative z-10">
+          <div className="grid lg:grid-cols-12 gap-8 items-center">
+            {/* Content: Community highlights & stats */}
+            <motion.div {...fade(0)} className="lg:col-span-7 space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 bg-white/10 border border-white/15 text-white text-xs font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>مجتمع الأستاذ عمر وهاب</span>
+                <span className="opacity-40">|</span>
+                <span className="font-mono text-brand-orange">@omar_wahab20</span>
+              </div>
+
+              <h2 className="font-display text-2xl sm:text-3xl font-black text-white leading-tight">
+                أكثر من <span className="text-gradient">12,600 طالب ومتابع</span> يتعلمون الألمانية معنا
+              </h2>
+
+              <p className="text-slate-300 text-sm leading-relaxed">
+                شروحات يومية وتدريبات على أهم أسئلة امتحانات Goethe و Telc وقواعد اللغة الألمانية عبر الحسابات الرسمية.
+              </p>
+
+              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300 space-y-1">
+                <p className="font-mono font-bold text-emerald-400" dir="ltr">
+                  Deutsch lernen mit Omar. Überall mit dir 🇩🇪
+                </p>
+                <p>خريج قسم اللغة الألمانية • دورات تفاعلية ومتابعة مباشرة • رقم التواصل: +963 934 090 166</p>
+              </div>
+
+              {/* PART 12: HARMONIZED SOCIAL / CONTACT BUTTONS (Consistent Height, Radius, Style) */}
+              <div className="pt-2 flex flex-wrap items-center gap-3">
+                <a
+                  href="https://www.tiktok.com/@omar_wahab20"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-11 px-5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs flex items-center gap-2 transition-all"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current text-brand-orange" />
+                  <span>تابع الحساب عبر التيك توك</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 opacity-60" />
+                </a>
+
+                <a
+                  href="https://wa.me/963934090166"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-11 px-5 rounded-xl bg-emerald-600/90 hover:bg-emerald-600 border border-emerald-500/30 text-white font-bold text-xs flex items-center gap-2 transition-all shadow-xs"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>تواصل عبر الواتساب</span>
+                </a>
+              </div>
+            </motion.div>
+
+            {/* Right: Phone Mockup Frame */}
+            <motion.div {...fade(0.1)} className="lg:col-span-5 flex justify-center">
+              <div className="relative w-full max-w-[280px]">
+                <div className="relative rounded-[2.2rem] bg-slate-950 p-2.5 border-4 border-slate-700 shadow-2xl ring-1 ring-white/10">
+                  <div className="w-20 h-3.5 bg-slate-800 rounded-full mx-auto mb-2 flex items-center justify-center">
+                    <span className="w-2 h-2 rounded-full bg-slate-900 border border-slate-700" />
                   </div>
-                  <p className="text-[10px] font-semibold tracking-wider text-muted-foreground mt-0.5">{item.label}</p>
+
+                  <div className="relative aspect-[9/19] w-full rounded-[1.8rem] overflow-hidden bg-black border border-slate-800">
+                    <Image
+                      src="/images/teacher/omar-social-proof.png"
+                      alt="حساب الأستاذ عمر وهاب الرسمي"
+                      fill
+                      sizes="280px"
+                      className="object-cover object-top"
+                    />
+                    <div className="absolute bottom-0 inset-x-0 p-2.5 bg-gradient-to-t from-black via-black/85 to-transparent text-center">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-brand-orange text-white text-[10px] font-bold">
+                        <Star className="w-2.5 h-2.5 fill-current" />
+                        12,600+ متابع حقيقي
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="w-24 h-1 bg-slate-600 rounded-full mx-auto mt-2" />
                 </div>
-              </motion.div>
-            ))}
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* ============ LEVELS ============ */}
-      <section className="py-10 md:py-14 bg-brand-warm dark:bg-accent relative overflow-hidden">
-        <div className="container-bold">
-          <motion.div {...fade(0)}>
-            <SectionTitle badge={t(locale, 'home_levels_badge')} title={t(locale, 'home_levels_title')} subtitle={t(locale, 'home_levels_subtitle')} />
-          </motion.div>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-            {LEVELS.map((level, i) => (
-              <motion.button key={level} {...fade(i * 0.06)}
-                onClick={() => navigate('courses')}
-                className="group relative p-4 rounded-2xl border border-border/60 bg-card hover:border-brand-orange/30 hover:-translate-y-0.5 transition-all duration-300 text-center overflow-hidden shadow-sm">
-                <span className="font-display text-3xl font-black absolute -top-0.5 -end-0.5 opacity-[0.05] text-foreground">{level}</span>
-                <div className="relative z-10">
-                  <div className="w-9 h-9 mx-auto mb-2.5 rounded-xl bg-gradient-to-br from-brand-orange/10 to-brand-red/10 flex items-center justify-center group-hover:from-brand-orange group-hover:to-brand-red transition-all duration-300">
-                    <span className="font-display text-sm font-extrabold text-brand-orange group-hover:text-white transition-colors duration-300">{level}</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-1 text-[10px] font-semibold text-muted-foreground group-hover:text-brand-orange transition-colors duration-200">
-                    <span>{t(locale, 'courses_view_details')}</span>
-                    <Play className="w-2.5 h-2.5" />
-                  </div>
-                </div>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ============ EDUCATIONAL VIDEOS ============ */}
+      {/* ============================================================
+          EDUCATIONAL SHORTS & REELS
+      ============================================================ */}
       {reels.length > 0 && (
-        <section className="py-10 md:py-14 bg-brand-warm dark:bg-accent relative overflow-hidden">
+        <section className="py-10 md:py-14 bg-transparent relative">
           <div className="container-bold">
-            <motion.div {...fade(0)}>
-              <SectionTitle badge={t(locale, 'reels_title')} title={t(locale, 'reels_title')} subtitle={t(locale, 'reels_subtitle')} />
-            </motion.div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground">
+                  مقاطع تعليمية سريعة
+                </h2>
+                <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+                  شروحات مقتضبة لأهم الكلمات والمصطلحات الألمانية
+                </p>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-4xl mx-auto">
               {reels.slice(0, 3).map((reel, i) => (
-                <motion.button key={reel.id} {...fade(i * 0.07)}
+                <motion.button
+                  key={reel.id}
+                  {...fade(i * 0.05)}
                   onClick={() => setActiveReel(reel)}
-                  className="group relative aspect-[9/16] rounded-2xl overflow-hidden shadow-lg shadow-black/10 ring-1 ring-black/5 dark:ring-white/10 cursor-pointer text-start">
+                  className="group relative aspect-[9/16] rounded-xl overflow-hidden shadow-md ring-1 ring-border cursor-pointer text-start bg-slate-900"
+                >
                   {reel.thumbnail ? (
-                    <Image src={reel.thumbnail} alt={getReelField(reel, 'title')} fill sizes="(max-width:1024px) 50vw, 25vw" className="object-cover group-hover:scale-[1.03] transition-transform duration-500" />
+                    <Image
+                      src={reel.thumbnail}
+                      alt={getReelField(reel, 'title')}
+                      fill
+                      sizes="(max-width: 1024px) 50vw, 25vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
                   ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-brand-dark to-[#1a1008]" />
+                    <div className="absolute inset-0 bg-slate-900" />
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                  
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <motion.div whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.96 }}
-                      className="w-14 h-14 rounded-full flex items-center justify-center border border-white/25 backdrop-blur-md transition-all"
-                      style={{ background: 'rgba(0,0,0,0.4)' }}>
-                      <Play className="w-5 h-5 text-white ms-0.5 fill-white" />
-                    </motion.div>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center border border-white/20 bg-black/40 backdrop-blur-md group-hover:scale-105 transition-transform">
+                      <Play className="w-5 h-5 text-white fill-white ms-0.5" />
+                    </div>
                   </div>
-                  <div className="absolute bottom-0 inset-x-0 p-4">
-                    <h3 className="font-display text-sm font-bold text-white mb-1 line-clamp-2">{getReelField(reel, 'title')}</h3>
+
+                  <div className="absolute bottom-0 inset-x-0 p-3.5 space-y-1">
+                    <h3 className="font-display text-xs sm:text-sm font-bold text-white line-clamp-2">
+                      {getReelField(reel, 'title')}
+                    </h3>
                     {formatDuration(reel.duration) && (
-                      <p className="text-[11px] font-semibold text-white/60">{formatDuration(reel.duration)}</p>
+                      <p className="text-[10px] font-medium text-white/70">
+                        {formatDuration(reel.duration)} دقيقة
+                      </p>
                     )}
                   </div>
                 </motion.button>
@@ -404,101 +930,106 @@ export default function HomeView() {
         </section>
       )}
 
-      {/* ============ REEL MODAL ============ */}
+      {/* Reel Modal */}
       <AnimatePresence>
         {activeReel && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-            onClick={() => setActiveReel(null)}>
-            <motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 12 }} transition={{ duration: 0.2 }}
+            onClick={() => setActiveReel(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-2xl relative">
-              <button onClick={() => setActiveReel(null)} aria-label="إغلاق"
-                className="absolute -top-11 end-0 text-white/70 hover:text-white transition-colors text-sm font-bold flex items-center gap-1">
-                <X className="w-5 h-5" />
+              className="w-full max-w-2xl relative bg-black rounded-2xl overflow-hidden border border-white/20 shadow-2xl p-2"
+            >
+              <button
+                onClick={() => setActiveReel(null)}
+                aria-label="إغلاق"
+                className="absolute top-3 end-3 z-20 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black transition-colors"
+              >
+                <X className="w-4 h-4" />
               </button>
               {(() => {
                 const embed = getReelEmbedUrl(activeReel);
                 return embed ? (
-                  <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ aspectRatio: '16/9' }}>
-                    <iframe src={embed} title={getReelField(activeReel, 'title')} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen className="absolute inset-0 w-full h-full" />
+                  <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
+                    <iframe
+                      src={embed}
+                      title={getReelField(activeReel, 'title')}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      className="absolute inset-0 w-full h-full"
+                    />
                   </div>
                 ) : (
-                  <video src={activeReel.videoUrl} controls autoPlay className="w-full rounded-2xl shadow-2xl" style={{ aspectRatio: '16/9' }} />
+                  <video
+                    src={activeReel.videoUrl}
+                    controls
+                    autoPlay
+                    className="w-full rounded-xl"
+                    style={{ aspectRatio: '16/9' }}
+                  />
                 );
               })()}
-              <div className="mt-4 text-center">
-                <h3 className="font-display text-lg font-black text-white">{getReelField(activeReel, 'title')}</h3>
+              <div className="p-3 text-center">
+                <h3 className="font-display text-sm font-bold text-white">
+                  {getReelField(activeReel, 'title')}
+                </h3>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ============ TESTIMONIALS ============ */}
+      {/* ============================================================
+          STUDENT TESTIMONIALS
+      ============================================================ */}
       {testimonials.length > 0 && (
-        <section className="py-10 md:py-14 bg-white dark:bg-card relative overflow-hidden">
+        <section className="py-10 md:py-14 bg-transparent relative">
           <div className="container-bold">
-            <motion.div {...fade(0)}>
-              <SectionTitle badge={t(locale, 'testimonials_title')} title={t(locale, 'testimonials_title')} subtitle={t(locale, 'testimonials_subtitle')} />
-            </motion.div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {testimonials.slice(0, 3).map((testimonial, i) => (
-                <motion.div key={testimonial.id} {...fade(i * 0.07)}>
-                  <div className="p-4 md:p-5 h-full rounded-2xl border border-border/60 bg-card hover:border-brand-orange/25 transition-colors duration-300 shadow-sm">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-orange to-brand-red flex items-center justify-center text-white text-base font-bold shrink-0">
-                        {getTestimonialField(testimonial as unknown as Record<string, unknown>, 'name').charAt(0)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-display font-bold text-sm text-foreground truncate">{getTestimonialField(testimonial as unknown as Record<string, unknown>, 'name')}</p>
-                        <p className="text-xs text-muted-foreground truncate">{getTestimonialField(testimonial as unknown as Record<string, unknown>, 'role')}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-0.5 mb-3">
-                      {Array.from({ length: 5 }).map((_, j) => (
-                        <Star key={j} className={'w-3.5 h-3.5 ' + (j < testimonial.rating ? 'text-amber-400 fill-amber-400' : 'text-muted')} />
+            <div className="mb-6">
+              <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground">
+                آراء وقصص نجاح الطلاب
+              </h2>
+              <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+                تجارب حقيقية لطلاب اجتازوا امتحانات Goethe و Telc مع الأستاذ عمر وهاب
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {testimonials.slice(0, 3).map((testi, i) => (
+                <motion.div
+                  key={testi.id}
+                  {...fade(i * 0.05)}
+                  className="p-5 rounded-xl border border-border/80 bg-card hover:border-brand-orange/30 hover:shadow-sm transition-all duration-200 flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1 text-amber-500">
+                      {Array.from({ length: 5 }).map((_, si) => (
+                        <Star key={si} className="w-3.5 h-3.5 fill-current" />
                       ))}
                     </div>
-                    <p className="text-sm leading-relaxed text-foreground/75">&ldquo;{getTestimonialField(testimonial as unknown as Record<string, unknown>, 'text')}&rdquo;</p>
-                    {testimonial.level && <span className="inline-block mt-4 level-badge">{testimonial.level}</span>}
+                    <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed italic">
+                      &ldquo;{getTestimonialField(testi as unknown as Record<string, unknown>, 'text')}&rdquo;
+                    </p>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
-      {/* ============ BLOG / POSTS ============ */}
-      {posts.length > 0 && (
-        <section className="py-10 md:py-14 bg-brand-warm dark:bg-accent relative overflow-hidden">
-          <div className="container-bold">
-            <motion.div {...fade(0)}>
-              <div className="flex items-end justify-between gap-4">
-                <SectionTitle badge={t(locale, 'home_latest_posts')} title={t(locale, 'home_latest_posts')} />
-                <button onClick={() => navigate('posts')} className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-brand-orange hover:text-brand-orange-dark transition-colors pb-1 shrink-0">
-                  {t(locale, 'home_view_all')} <ArrowUpRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </motion.div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {posts.slice(0, 3).map((post, i) => (
-                <motion.div key={post.id} {...fade(i * 0.07)}>
-                  <div onClick={() => navigate('post-detail', { id: post.id })} className="group cursor-pointer">
-                    <div className="overflow-hidden rounded-2xl border border-border/60 bg-card hover:border-brand-orange/30 hover:-translate-y-0.5 transition-all duration-300 shadow-sm">
-                      <div className="relative aspect-[16/9] overflow-hidden">
-                        <Image src={post.imageUrl || '/images/berlin/brandenburg-gate.png'} alt={getPostField(post as unknown as Record<string, unknown>, 'title')} fill sizes="(max-width:1024px) 100vw, 33vw" className="object-cover group-hover:scale-[1.04] transition-transform duration-500" />
-                        {post.category && <span className="absolute top-3 start-3 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-brand-orange text-white rounded-md">{post.category}</span>}
-                      </div>
-                      <div className="p-4">
-                        <h3 className="font-display font-bold text-foreground mb-1 line-clamp-2 group-hover:text-brand-orange transition-colors text-sm leading-snug">{getPostField(post as unknown as Record<string, unknown>, 'title')}</h3>
-                        <p className="text-[12px] text-muted-foreground line-clamp-2 mb-3 leading-relaxed">{getPostField(post as unknown as Record<string, unknown>, 'excerpt')}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] text-muted-foreground font-medium">{new Date(post.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-SA' : locale === 'de' ? 'de-DE' : 'en-US')}</span>
-                          <span className="text-[11px] font-bold text-brand-orange flex items-center gap-1 group-hover:gap-1.5 transition-all">{t(locale, 'home_read_more')} <ArrowUpRight className="w-3 h-3" /></span>
-                        </div>
-                      </div>
+                  <div className="pt-3 mt-3 border-t border-border/60 flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center font-bold text-xs">
+                      {getTestimonialField(testi as unknown as Record<string, unknown>, 'name').charAt(0) || 'ط'}
+                    </div>
+                    <div>
+                      <p className="font-bold text-xs text-foreground">
+                        {getTestimonialField(testi as unknown as Record<string, unknown>, 'name')}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {getTestimonialField(testi as unknown as Record<string, unknown>, 'role') || 'طالب معتمد'}
+                      </p>
                     </div>
                   </div>
                 </motion.div>
@@ -508,44 +1039,120 @@ export default function HomeView() {
         </section>
       )}
 
-      {/* ============ FINAL CTA ============ */}
+      {/* ============================================================
+          LATEST POSTS & ARTICLES
+      ============================================================ */}
+      {posts.length > 0 && (
+        <section className="py-10 md:py-14 bg-transparent relative">
+          <div className="container-bold">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground">
+                  أحدث المقالات التعليمية
+                </h2>
+                <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+                  إرشادات لغوية ونصائح لاجتياز امتحانات المعاهد الرسمية
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('posts')}
+                className="text-xs font-bold text-brand-orange hover:text-brand-orange-dark flex items-center gap-1 transition-colors"
+              >
+                <span>عرض كافة المقالات</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="grid sm:grid-cols-3 gap-5">
+              {posts.slice(0, 3).map((post, i) => (
+                <motion.div
+                  key={post.id}
+                  {...fade(i * 0.05)}
+                  onClick={() => navigate('post-detail', { id: post.id })}
+                  className="group cursor-pointer rounded-xl border border-border/80 bg-card overflow-hidden hover:border-brand-orange/30 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
+                >
+                  <div className="relative aspect-[16/9] bg-slate-900 overflow-hidden">
+                    <Image
+                      src={resolveMediaUrl(post.imageUrl) || '/images/berlin/brandenburg-gate.png'}
+                      alt={getPostField(post as unknown as Record<string, unknown>, 'title')}
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 33vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="p-4 space-y-1.5 flex-1 flex flex-col justify-between">
+                    <div>
+                      <h4 className="font-bold text-xs sm:text-sm text-foreground group-hover:text-brand-orange transition-colors line-clamp-2 mb-1">
+                        {getPostField(post as unknown as Record<string, unknown>, 'title')}
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                        {getPostField(post as unknown as Record<string, unknown>, 'excerpt')}
+                      </p>
+                    </div>
+                    <div className="pt-2.5 border-t border-border/60 flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>{new Date(post.createdAt).toLocaleDateString('ar-EG')}</span>
+                      <span className="font-bold text-brand-orange flex items-center gap-0.5">
+                        اقرأ المزيد <ArrowUpRight className="w-3 h-3" />
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ============================================================
+          PART 13: "ابدأ رحلتك الآن" FINAL CTA WITH BERLIN BACKGROUND IMAGE
+      ============================================================ */}
       <section className="py-10 md:py-14">
         <div className="container-bold">
-          <motion.div {...fade(0)}>
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-dark via-[#1a1008] to-[#0f0f0f] px-6 py-10 sm:p-10 lg:p-12 text-center shadow-md">
-              <img
+          <div className="relative overflow-hidden rounded-2xl md:rounded-[24px] text-white p-8 md:p-12 text-center shadow-2xl border border-white/10 group">
+            {/* Real Berlin Architecture Background Image - Vivid & Beautiful */}
+            <div className="absolute inset-0 -z-0">
+              <Image
                 src="/images/berlin/brandenburg-gate.png"
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover opacity-40 select-none pointer-events-none"
+                alt="Berlin Architecture — Deutsch mit Omar"
+                fill
+                sizes="100vw"
+                className="object-cover object-center group-hover:scale-105 transition-transform duration-1000 ease-out"
+                priority
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/60 pointer-events-none" />
-              <div className="absolute top-0 start-1/2 -translate-x-1/2 w-[420px] h-[220px] rounded-full blur-[90px] pointer-events-none" style={{ background: 'rgba(232, 93, 38, 0.22)' }} />
-              <div className="absolute bottom-0 end-0 w-[320px] h-[180px] rounded-full blur-[80px] pointer-events-none" style={{ background: 'rgba(220, 53, 69, 0.16)' }} />
-              <div className="relative z-10 max-w-xl mx-auto">
-                <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-5 border border-white/15" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                  <span className="w-1.5 h-1.5 bg-brand-orange rounded-full" />
-                  <span className="text-[11px] font-semibold tracking-[0.15em] uppercase" style={{ color: 'rgba(255,255,255,0.75)' }}>Deutsch mit Omar</span>
-                </div>
-                <h2 className="font-display text-2xl sm:text-3xl lg:text-[2.4rem] font-black text-white leading-tight mb-3 text-balance">{t(locale, 'carousel_3_title')}</h2>
-                <p className="leading-relaxed mb-7 text-sm sm:text-base max-w-md mx-auto" style={{ color: 'rgba(255,255,255,0.5)' }}>{t(locale, 'carousel_3_desc')}</p>
-                <button onClick={() => navigate('courses')} className="group inline-flex items-center gap-2 px-6 py-3 text-sm font-bold tracking-wide uppercase text-white rounded-xl shadow-lg shadow-brand-orange/30 hover:shadow-brand-orange/45 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200" style={{ background: 'linear-gradient(135deg, #E85D26, #DC3545)' }}>
-                  {t(locale, 'hero_cta_primary')}
-                  <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/25 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/20 to-black/75 pointer-events-none" />
+            </div>
+
+            <div className="relative z-10 max-w-xl mx-auto space-y-3">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white/90 border border-white/15 text-xs font-semibold backdrop-blur-md shadow-xs">
+                ابدأ رحلتك الآن
+              </span>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight drop-shadow-md">
+                جاهز لإتقان اللغة الألمانية؟
+              </h2>
+              <p className="text-xs sm:text-sm text-white/85 leading-relaxed max-w-md mx-auto">
+                اختر مسارك التعليمي، وشاهد الدرس الأول مجاناً وابدأ بثقة.
+              </p>
+              <div className="pt-2 flex items-center justify-center gap-3 flex-wrap">
+                <button
+                  onClick={() => navigate('courses')}
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-orange to-brand-red text-white text-xs sm:text-sm font-bold shadow-lg shadow-brand-orange/30 hover:shadow-brand-orange/50 hover:-translate-y-0.5 active:scale-[0.98] transition-all flex items-center gap-2"
+                >
+                  <span>تصفح كافة الدورات</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => navigate('online_booking')}
+                  className="px-5 py-2.5 rounded-xl border border-white/25 bg-black/30 backdrop-blur-md hover:bg-white/15 text-white text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-brand-orange" />
+                  <span>حجز درس أونلاين</span>
                 </button>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
     </div>
-  );
-}
-
-function CalendarIcon({ className = 'w-4 h-4' }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" />
-    </svg>
   );
 }

@@ -7,6 +7,7 @@ import {
   PrimaryButton, GhostButton, Modal, ConfirmDialog, SectionHeader, EmptyState, ListLoading,
   Toggle, LangInput, ImageField, FormRow, inputClass,
 } from './ui';
+import { resolveAdminMediaUrl } from './media-uploaders';
 import { adminFetch, fieldOf, useAdminData } from './api';
 import { Post, POST_CATEGORIES } from './types';
 
@@ -69,14 +70,22 @@ export default function PostsSection({
         <div className="space-y-3">
           {filtered.map((p) => (
             <div key={p.id} className="card-bold p-5 flex items-center justify-between gap-4 border-2 hover:border-brand-orange/30 transition-all">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="text-xs font-bold text-brand-orange bg-brand-orange/10 px-2 py-0.5 rounded-lg">{p.category}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-lg font-bold ${p.isPublished ? 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
-                    {p.isPublished ? 'منشورة' : 'مسودة'}
-                  </span>
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                {p.imageUrl && (
+                  <div className="w-16 h-12 rounded-xl overflow-hidden bg-secondary shrink-0 border border-border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={resolveAdminMediaUrl(p.imageUrl)} alt="" className="w-full h-full object-cover" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-xs font-bold text-brand-orange bg-brand-orange/10 px-2 py-0.5 rounded-lg">{p.category}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-lg font-bold ${p.isPublished ? 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
+                      {p.isPublished ? 'منشورة' : 'مسودة'}
+                    </span>
+                  </div>
+                  <p className="text-sm font-bold text-foreground truncate">{fieldOf(p as any, 'title', locale)}</p>
                 </div>
-                <p className="text-sm font-bold text-foreground truncate">{fieldOf(p as any, 'title', locale)}</p>
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={() => { setEditing(p); setFormOpen(true); }} className="p-2.5 text-muted-foreground hover:text-brand-orange rounded-xl hover:bg-brand-orange/5 transition-all"><Pencil className="w-4 h-4" /></button>

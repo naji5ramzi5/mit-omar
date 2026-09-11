@@ -115,18 +115,25 @@ export default function Footer() {
           </div>
 
           {/* Navigation */}
-          <div className="lg:col-span-2 lg:col-start-6">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 mb-4">
+          <div className="lg:col-span-3 lg:col-start-5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white/70 mb-4">
               {t(locale, 'footer_navigation')}
             </h4>
             <ul className="space-y-2.5">
-              {['nav_home', 'nav_about', 'nav_courses', 'nav_posts', 'nav_contact'].map((key) => (
-                <li key={key}>
+              {[
+                { key: 'nav_home', view: 'home' },
+                { key: 'nav_about', view: 'about' },
+                { key: 'nav_courses', view: 'courses' },
+                { key: 'nav_online_booking', view: 'online_booking' },
+                { key: 'nav_posts', view: 'posts' },
+                { key: 'nav_contact', view: 'contact' },
+              ].map((item) => (
+                <li key={item.key}>
                   <button
-                    onClick={() => navigate(key === 'nav_home' ? 'home' : key === 'nav_about' ? 'about' : key === 'nav_courses' ? 'courses' : key === 'nav_posts' ? 'posts' : 'contact')}
-                    className="text-sm text-white/40 hover:text-brand-orange transition-colors duration-200"
+                    onClick={() => navigate(item.view as any)}
+                    className="text-sm text-white hover:text-brand-orange font-medium transition-colors duration-200"
                   >
-                    {t(locale, key as Parameters<typeof t>[1])}
+                    {t(locale, item.key as Parameters<typeof t>[1])}
                   </button>
                 </li>
               ))}
@@ -135,24 +142,45 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div className="lg:col-span-2">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 mb-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white/70 mb-4">
               {t(locale, 'footer_quick_links')}
             </h4>
             <ul className="space-y-2.5">
-              <li><button onClick={() => navigate('courses')} className="text-sm text-white/40 hover:text-brand-orange transition-colors duration-200">{t(locale, 'nav_courses')}</button></li>
-              <li><button onClick={() => navigate('activate')} className="text-sm text-white/40 hover:text-brand-orange transition-colors duration-200">{t(locale, 'course_activate')}</button></li>
-              <li><button onClick={() => navigate('login')} className="text-sm text-white/40 hover:text-brand-orange transition-colors duration-200">{t(locale, 'nav_login')}</button></li>
+              <li>
+                <button
+                  onClick={() => navigate('courses')}
+                  className="text-sm text-white hover:text-brand-orange font-medium transition-colors duration-200"
+                >
+                  {t(locale, 'nav_courses')}
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate('activate')}
+                  className="text-sm text-white hover:text-brand-orange font-medium transition-colors duration-200"
+                >
+                  {t(locale, 'course_activate')}
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate('login')}
+                  className="text-sm text-white hover:text-brand-orange font-medium transition-colors duration-200"
+                >
+                  {t(locale, 'nav_login')}
+                </button>
+              </li>
             </ul>
           </div>
 
           {/* Contact */}
-          <div className="lg:col-span-2">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 mb-4">
+          <div className="lg:col-span-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white/70 mb-4">
               {t(locale, 'nav_contact')}
             </h4>
-            <ul className="space-y-2.5 text-sm text-white/40">
-              <li className="hover:text-brand-orange transition-colors duration-200">{CONTACT_EMAIL}</li>
-              <li className="hover:text-brand-orange transition-colors duration-200">Berlin, Germany</li>
+            <ul className="space-y-2.5 text-sm text-white">
+              <li className="hover:text-brand-orange transition-colors duration-200 font-medium">{CONTACT_EMAIL}</li>
+              <li className="hover:text-brand-orange transition-colors duration-200 font-medium">Berlin, Germany</li>
             </ul>
           </div>
         </div>

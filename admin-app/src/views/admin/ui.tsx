@@ -5,6 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, AlertTriangle, Loader2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LEVELS } from './types';
+import { ImageUploader } from './media-uploaders/ImageUploader';
+import { VideoUploader } from './media-uploaders/VideoUploader';
+import { AudioUploader } from './media-uploaders/AudioUploader';
+
+export { ImageUploader, VideoUploader, AudioUploader };
 
 /* ----------------------------- Primary button ----------------------------- */
 export function PrimaryButton({
@@ -361,28 +366,21 @@ export function LangInput({
 export function ImageField({
   value,
   onChange,
-  placeholder = 'رابط الصورة (URL)',
+  placeholder = 'انقر لرفع صورة من الكمبيوتر أو اسحبها هنا',
+  aspectRatio,
 }: {
   value?: string | null;
   onChange: (v: string | null) => void;
   placeholder?: string;
+  aspectRatio?: string;
 }) {
   return (
-    <div className="space-y-2">
-      <input
-        type="text"
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value || null)}
-        placeholder={placeholder}
-        className="w-full px-4 py-2.5 text-sm rounded-xl border-2 border-border bg-background text-foreground focus:border-brand-orange focus:outline-none transition-all"
-      />
-      {value && (
-        <div className="relative w-full h-36 rounded-xl overflow-hidden border border-border bg-secondary">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value} alt="" className="w-full h-full object-cover" onError={(e) => ((e.target as HTMLImageElement).style.opacity = '0')} />
-        </div>
-      )}
-    </div>
+    <ImageUploader
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      aspectRatio={aspectRatio}
+    />
   );
 }
 

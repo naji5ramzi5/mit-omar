@@ -17,7 +17,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     const { data: student, error } = await supabaseAdmin
       .from('users')
-      .select('id, name, email, phone, createdAt, enrollments(id, activatedAt, isActive, course: courses(id, titleAr, titleDe, titleEn, level))')
+      .select('id, name, email, phone, createdAt, enrollments(id, activatedAt, expiresAt, isActive, course: courses(id, titleAr, titleDe, titleEn, level))')
       .eq('id', id)
       .single();
 
