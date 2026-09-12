@@ -136,6 +136,8 @@ export function ConfirmDialog({
   open,
   title,
   message,
+  confirmText,
+  cancelText,
   onConfirm,
   onCancel,
   loading,
@@ -143,6 +145,8 @@ export function ConfirmDialog({
   open: boolean;
   title?: string;
   message: string;
+  confirmText?: string;
+  cancelText?: string;
   onConfirm: () => void;
   onCancel: () => void;
   loading?: boolean;
@@ -175,15 +179,15 @@ export function ConfirmDialog({
             </div>
             <div className="flex gap-3 justify-end">
               <GhostButton onClick={onCancel} disabled={loading}>
-                إلغاء
+                {cancelText || 'إلغاء'}
               </GhostButton>
               <button
                 onClick={onConfirm}
                 disabled={loading}
-                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                حذف
+                {confirmText || 'حذف'}
               </button>
             </div>
           </motion.div>

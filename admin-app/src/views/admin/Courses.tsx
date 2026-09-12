@@ -15,6 +15,7 @@ import {
 import { ImageUploader, VideoUploader, resolveAdminMediaUrl } from './media-uploaders';
 import { adminFetch, fieldOf, useAdminData } from './api';
 import { Course, CourseLevel, Lesson, LEVELS } from './types';
+import LessonFlashcardsManager from './LessonFlashcardsManager';
 
 const emptyCourse: Partial<Course> = {
   titleAr: '', titleDe: '', titleEn: '',
@@ -802,6 +803,9 @@ function LevelLessonsManager({
   const [previewVideoSrc, setPreviewVideoSrc] = useState<string | null>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
 
+  // Lesson Flashcards Manager state
+  const [managingFlashcardsLesson, setManagingFlashcardsLesson] = useState<Lesson | null>(null);
+
   const loadLessons = useCallback(async () => {
     setLoading(true);
     try {
@@ -869,6 +873,35 @@ function LevelLessonsManager({
     setPreviewLessonId(lesson.id);
     setPreviewModalOpen(true);
   };
+
+  if (managingFlashcardsLesson) {
+    return (
+      <div className="space-y-6">
+        <button
+          onClick={() => {
+            setManagingFlashcardsLesson(null);
+            loadLessons();
+          }}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 border border-border text-xs font-bold text-foreground transition-all cursor-pointer"
+        >
+          <ArrowRight className="w-4 h-4" />
+          العودة إلى دروس {fieldOf(level as any, 'title', locale) || level.name}
+        </button>
+        <LessonFlashcardsManager
+          course={course}
+          level={level}
+          lesson={managingFlashcardsLesson}
+          token={token}
+          locale={locale}
+          onClose={() => {
+            setManagingFlashcardsLesson(null);
+            loadLessons();
+          }}
+          onUpdated={loadLessons}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -973,6 +1006,20 @@ function LevelLessonsManager({
                         فيديو مرفوع (R2)
                       </span>
                     )}
+
+                    {/* Lesson Flashcards Badge */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setManagingFlashcardsLesson(l);
+                      }}
+                      className="text-[11px] px-2.5 py-0.5 rounded-lg bg-brand-orange/10 hover:bg-brand-orange/20 text-brand-orange font-bold border border-brand-orange/30 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                      title="إدارة بطاقات الحفظ المرتبطة بهذا الدرس"
+                    >
+                      <BookOpen className="w-3.5 h-3.5" />
+                      بطاقات الحفظ ({l._count?.flashcards ?? 0})
+                    </button>
                   </div>
                 </div>
               </div>
@@ -995,6 +1042,15 @@ function LevelLessonsManager({
                   className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary disabled:opacity-30 disabled:pointer-events-none transition-all"
                 >
                   <ArrowDown className="w-4 h-4" />
+                </button>
+
+                {/* Manage Flashcards Button */}
+                <button
+                  onClick={() => setManagingFlashcardsLesson(l)}
+                  title="إدارة بطاقات الحفظ لهذا الدرس"
+                  className="p-2.5 text-muted-foreground hover:text-brand-orange rounded-xl hover:bg-brand-orange/10 transition-all cursor-pointer"
+                >
+                  <BookOpen className="w-4 h-4 text-brand-orange" />
                 </button>
 
                 {/* Preview Video */}

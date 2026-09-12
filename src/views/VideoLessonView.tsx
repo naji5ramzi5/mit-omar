@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight, ArrowLeft, CheckCircle, Clock, List, X, Loader2, AlertTriangle,
-  Lock, KeyRound, Play, AlertCircle, CheckCircle2, MessageCircle
+  Lock, KeyRound, Play, AlertCircle, CheckCircle2, MessageCircle, BookOpen
 } from 'lucide-react';
 import { useAppStore } from '@/stores/app-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { t } from '@/lib/i18n';
 import SecureVideoPlayer from '@/components/SecureVideoPlayer';
+import LessonFlashcardsPlayer, { LessonCard } from '@/components/LessonFlashcardsPlayer';
 
 interface Lesson {
   id: string;
@@ -42,6 +43,12 @@ export default function VideoLessonView() {
   const [activationError, setActivationError] = useState<string | null>(null);
   const [activationSuccess, setActivationSuccess] = useState<any | null>(null);
   const [courseTitle, setCourseTitle] = useState<string>('');
+
+  // Lesson Flashcards state
+  const [lessonFlashcards, setLessonFlashcards] = useState<LessonCard[]>([]);
+  const [flashcardsLoading, setFlashcardsLoading] = useState(false);
+  const [showFlashcardsPlayer, setShowFlashcardsPlayer] = useState(false);
+  const [completionPrompt, setCompletionPrompt] = useState(false);
   const isRtl = locale === 'ar';
   const BackArrow = isRtl ? ArrowRight : ArrowLeft;
   const courseId = viewParams.courseId;
@@ -103,6 +110,23 @@ export default function VideoLessonView() {
       .finally(() => setLoading(false));
   }, [courseId, lessonId, token]);
 
+  useEffect(() => {
+    if (!currentLesson?.id) {
+      setLessonFlashcards([]);
+      return;
+    }
+    setFlashcardsLoading(true);
+    fetch(`/api/flashcards?lessonId=${currentLesson.id}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setLessonFlashcards(data.words || []);
+      })
+      .catch(() => setLessonFlashcards([]))
+      .finally(() => setFlashcardsLoading(false));
+  }, [currentLesson?.id, token]);
+
   const getField = (obj: Record<string, unknown>, field: string) => {
     const localeKey = locale.charAt(0).toUpperCase() + locale.slice(1);
     return (obj[`${field}${localeKey}`] as string) || '';
@@ -111,6 +135,8 @@ export default function VideoLessonView() {
   const selectLesson = (lesson: Lesson) => {
     setCurrentLesson(lesson);
     setShowSidebar(false);
+    setCompletionPrompt(false);
+    setShowFlashcardsPlayer(false);
     loadVideo(lesson);
   };
 
@@ -163,17 +189,24 @@ export default function VideoLessonView() {
   const nextLesson = currentIdx < lessons.length - 1 ? lessons[currentIdx + 1] : null;
 
   const handleComplete = async () => {
-    if (!currentLesson || !token) return;
-    try {
-      await fetch('/api/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ lessonId: currentLesson.id, completed: true }),
-      });
-      setLessons(prev => prev.map(l => l.id === currentLesson.id ? { ...l, completed: true } : l));
-      setCurrentLesson(prev => prev ? { ...prev, completed: true } : null);
-      if (nextLesson) selectLesson(nextLesson);
-    } catch { /* ignore */ }
+    if (!currentLesson) return;
+    if (token) {
+      try {
+        await fetch('/api/progress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ lessonId: currentLesson.id, completed: true }),
+        });
+      } catch { /* ignore */ }
+    }
+    setLessons(prev => prev.map(l => l.id === currentLesson.id ? { ...l, completed: true } : l));
+    setCurrentLesson(prev => prev ? { ...prev, completed: true } : null);
+
+    if (lessonFlashcards.length > 0) {
+      setCompletionPrompt(true);
+    } else if (nextLesson) {
+      selectLesson(nextLesson);
+    }
   };
 
   if (loading) {
@@ -308,27 +341,42 @@ export default function VideoLessonView() {
           </div>
 
           {/* Bottom Controls */}
-          <div className="border-t border-white/10 px-4 py-3 flex items-center justify-between">
+          <div className="border-t border-white/10 px-4 py-3 flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-3">
-              <button onClick={() => prevLesson && selectLesson(prevLesson)} disabled={!prevLesson} className="text-white/40 hover:text-white disabled:opacity-30 transition-colors">
+              <button onClick={() => prevLesson && selectLesson(prevLesson)} disabled={!prevLesson} className="text-white/40 hover:text-white disabled:opacity-30 transition-colors cursor-pointer">
                 {isRtl ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
               </button>
-              <button onClick={() => nextLesson && selectLesson(nextLesson)} disabled={!nextLesson} className="text-white/40 hover:text-white disabled:opacity-30 transition-colors">
+              <button onClick={() => nextLesson && selectLesson(nextLesson)} disabled={!nextLesson} className="text-white/40 hover:text-white disabled:opacity-30 transition-colors cursor-pointer">
                 {isRtl ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
               </button>
             </div>
-            <button
-              onClick={handleComplete}
-              disabled={currentLesson?.completed}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl transition-all ${
-                currentLesson?.completed
-                  ? 'bg-green-600/20 text-green-400'
-                  : 'bg-gradient-to-r from-brand-orange to-brand-red text-white hover:from-brand-orange-dark hover:to-brand-red-dark'
-              }`}
-            >
-              <CheckCircle className="w-4 h-4" />
-              {currentLesson?.completed ? t(locale, 'course_completed') : t(locale, 'course_continue')}
-            </button>
+
+            <div className="flex items-center gap-2">
+              {lessonFlashcards.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowFlashcardsPlayer(true)}
+                  className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl bg-brand-orange/20 hover:bg-brand-orange/30 text-brand-orange border border-brand-orange/40 transition-all cursor-pointer shadow-xs active:scale-95"
+                  title="مراجعة بطاقات حفظ مفردات هذا الدرس"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>بطاقات حفظ الدرس ({lessonFlashcards.length})</span>
+                </button>
+              )}
+
+              <button
+                onClick={handleComplete}
+                disabled={currentLesson?.completed}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl transition-all cursor-pointer ${
+                  currentLesson?.completed
+                    ? 'bg-green-600/20 text-green-400'
+                    : 'bg-gradient-to-r from-brand-orange to-brand-red text-white hover:from-brand-orange-dark hover:to-brand-red-dark'
+                }`}
+              >
+                <CheckCircle className="w-4 h-4" />
+                {currentLesson?.completed ? t(locale, 'course_completed') : t(locale, 'course_continue')}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -502,7 +550,82 @@ export default function VideoLessonView() {
             </motion.div>
           </div>
         )}
+
+        {/* Video Lesson Completion Prompt with Flashcards */}
+        {completionPrompt && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#0f172a] border border-white/15 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-5 shadow-2xl"
+            >
+              <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <CheckCircle2 className="w-8 h-8 text-white" />
+              </div>
+
+              <div>
+                <h3 className="text-xl font-black text-white mb-2">أحسنت! أكملت الدرس 👏</h3>
+                <p className="text-xs sm:text-sm text-white/70 leading-relaxed">
+                  يوجد في هذا الدرس <strong className="text-brand-orange font-black">{lessonFlashcards.length} بطاقات حفظ</strong> للمفردات التابعة له. هل ترغب في مراجعتها الآن لترسيخها في الذاكرة؟
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCompletionPrompt(false);
+                    setShowFlashcardsPlayer(true);
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-orange to-brand-red hover:from-brand-orange-dark hover:to-brand-red-dark text-white font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  مراجعة بطاقات الحفظ ({lessonFlashcards.length})
+                </button>
+
+                {nextLesson && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCompletionPrompt(false);
+                      selectLesson(nextLesson);
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    الانتقال مباشرة للدرس التالي
+                    {isRtl ? <ArrowLeft className="w-3.5 h-3.5" /> : <ArrowRight className="w-3.5 h-3.5" />}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setCompletionPrompt(false)}
+                  className="w-full py-2 text-xs text-white/40 hover:text-white/80 transition-all cursor-pointer"
+                >
+                  إغلاق ومتابعة الفيديو
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
+
+      {/* Interactive Lesson Flashcards Player */}
+      {showFlashcardsPlayer && (
+        <LessonFlashcardsPlayer
+          lessonTitle={currentLesson ? getField(currentLesson as unknown as Record<string, unknown>, 'title') : ''}
+          cards={lessonFlashcards}
+          locale={locale}
+          token={token}
+          onClose={() => setShowFlashcardsPlayer(false)}
+          hasNextLesson={!!nextLesson}
+          onNextLesson={() => {
+            setShowFlashcardsPlayer(false);
+            if (nextLesson) selectLesson(nextLesson);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -75,10 +75,10 @@
   --brand-red-light: #E86B76;
   --brand-red-dark: #C82333;
   --brand-gold: #D4A853;
-  --brand-warm: #FFFBF7;
+  --brand-warm: #F8FAFC;
 
   --radius: 0.875rem;
-  --background: #FAFBFC;
+  --background: #F8FAFC;
   --foreground: #0F172A;
   --card: #FFFFFF;
   --card-foreground: #0F172A;
@@ -90,7 +90,7 @@
   --secondary-foreground: #0F172A;
   --muted: #F1F5F9;
   --muted-foreground: #64748B;
-  --accent: #FFF7F0;
+  --accent: #F8FAFC;
   --accent-foreground: #0F172A;
   --destructive: #DC3545;
   --border: #E2E8F0;
@@ -102,42 +102,42 @@
   --chart-4: #22C55E;
   --chart-5: #3B82F6;
 
-  --sidebar: #FAFBFC;
+  --sidebar: #FFFFFF;
   --sidebar-foreground: #0F172A;
   --sidebar-primary: #E85D26;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #FFF7F0;
+  --sidebar-accent: #F1F5F9;
   --sidebar-accent-foreground: #0F172A;
   --sidebar-border: #E2E8F0;
   --sidebar-ring: #E85D26;
 }
 
 /* ═══════════════════════════════════════════
-   DARK MODE — Deep & Rich
+   DARK MODE — Deep, Calm & Rich Slate
    ═══════════════════════════════════════════ */
 .dark {
   --brand-charcoal: #F1F5F9;
-  --brand-dark: #09090B;
-  --brand-warm: #1C1608;
+  --brand-dark: #0F172A;
+  --brand-warm: #1E293B;
   --brand-gold: #E8C66A;
 
-  --background: #09090B;
+  --background: #0B1120;
   --foreground: #F8FAFC;
-  --card: #18181B;
+  --card: #0F172A;
   --card-foreground: #F8FAFC;
-  --popover: #18181B;
+  --popover: #0F172A;
   --popover-foreground: #F8FAFC;
   --primary: #E85D26;
   --primary-foreground: #FFFFFF;
-  --secondary: #27272A;
+  --secondary: #1E293B;
   --secondary-foreground: #F8FAFC;
-  --muted: #27272A;
+  --muted: #1E293B;
   --muted-foreground: #94A3B8;
-  --accent: #1C1608;
+  --accent: #1E293B;
   --accent-foreground: #F8FAFC;
-  --destructive: #DC3545;
-  --border: #2E2E32;
-  --input: #2E2E32;
+  --destructive: #EF4444;
+  --border: #1E293B;
+  --input: #1E293B;
   --ring: #E85D26;
   --chart-1: #E85D26;
   --chart-2: #DC3545;
@@ -145,13 +145,13 @@
   --chart-4: #22C55E;
   --chart-5: #3B82F6;
 
-  --sidebar: #09090B;
+  --sidebar: #0B1120;
   --sidebar-foreground: #F8FAFC;
   --sidebar-primary: #E85D26;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #1C1608;
+  --sidebar-accent: #1E293B;
   --sidebar-accent-foreground: #F8FAFC;
-  --sidebar-border: #2E2E32;
+  --sidebar-border: #1E293B;
   --sidebar-ring: #E85D26;
 }
 

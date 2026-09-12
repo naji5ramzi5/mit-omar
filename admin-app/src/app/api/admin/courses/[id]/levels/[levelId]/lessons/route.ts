@@ -26,7 +26,35 @@ export async function GET(
     const { data: lessons, error } = await query.order('order', { ascending: true });
 
     if (error) throw error;
-    return NextResponse.json({ lessons: lessons || [] });
+
+    const lessonIds = (lessons || []).map((l: any) => l.id);
+    const countsMap: Record<string, number> = {};
+    if (lessonIds.length > 0) {
+      try {
+        const { data: wordsData } = await supabaseAdmin
+          .from('words')
+          .select('lessonId')
+          .in('lessonId', lessonIds);
+        if (wordsData) {
+          for (const w of wordsData) {
+            if (w.lessonId) {
+              countsMap[w.lessonId] = (countsMap[w.lessonId] || 0) + 1;
+            }
+          }
+        }
+      } catch {
+        // Safe fallback if lessonId column not yet created
+      }
+    }
+
+    const enrichedLessons = (lessons || []).map((l: any) => ({
+      ...l,
+      _count: {
+        flashcards: countsMap[l.id] || 0,
+      },
+    }));
+
+    return NextResponse.json({ lessons: enrichedLessons });
   } catch (error) {
     console.error('Admin get level lessons error:', error);
     return NextResponse.json({ error: 'Failed to fetch lessons' }, { status: 500 });

@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   UploadCloud, Volume2, Play, Pause, CheckCircle2, 
-  AlertCircle, X, RefreshCw, Loader2, Music
+  AlertCircle, X, RefreshCw, Loader2, Music, Mic, Square, Radio
 } from 'lucide-react';
 import { resolveAdminMediaUrl, formatFileSize } from './media-utils';
 import { toast } from '../toast';
@@ -41,9 +41,14 @@ export function AudioUploader({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const getAuthToken = () => {
     if (token) return token;
@@ -63,8 +68,65 @@ export function AudioUploader({
       if (localBlobUrl && localBlobUrl.startsWith('blob:')) {
         URL.revokeObjectURL(localBlobUrl);
       }
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [localBlobUrl]);
+
+  const startRecording = async () => {
+    try {
+      setError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const recordedFile = new File([audioBlob], `teacher_voice_${Date.now()}.webm`, { type: 'audio/webm' });
+        if (localBlobUrl && localBlobUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(localBlobUrl);
+        }
+        const blobUrl = URL.createObjectURL(recordedFile);
+        setLocalBlobUrl(blobUrl);
+        performUpload(recordedFile);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      timerRef.current = setInterval(() => {
+        setRecordingSeconds((s) => s + 1);
+      }, 1000);
+    } catch (err: any) {
+      console.error('Microphone access denied:', err);
+      setError('تعذر الوصول إلى الميكروفون. يرجى التأكد من السماح بالوصول للميكروفون في المتصفح.');
+      toast.error('تعذر الوصول إلى الميكروفون');
+    }
+  };
+
+  const stopRecording = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  };
+
+  const cancelRecording = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      // stop without upload
+      mediaRecorderRef.current.onstop = () => {};
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+    setRecordingSeconds(0);
+  };
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_AUDIO_TYPES.includes(file.type) && !file.name.match(/\.(mp3|wav|m4a|aac|ogg)$/i)) {
@@ -208,7 +270,40 @@ export function AudioUploader({
         }}
       />
 
-      {!activeAudioSrc ? (
+      {isRecording ? (
+        <div className="rounded-2xl border-2 border-red-500/50 bg-red-500/5 p-5 text-center space-y-3 animate-pulse">
+          <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-500 mx-auto flex items-center justify-center">
+            <Radio className="w-6 h-6 animate-spin" />
+          </div>
+          <div>
+            <p className="text-sm font-black text-red-600 dark:text-red-400">
+              🔴 جارٍ تسجيل صوت الأستاذ عمر...
+            </p>
+            <p className="text-xl font-mono font-black text-foreground mt-1">
+              {formatSec(recordingSeconds)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">تحدث بوضوح أمام الميكروفون</p>
+          </div>
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <button
+              type="button"
+              onClick={stopRecording}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-black rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md transition-all cursor-pointer"
+            >
+              <Square className="w-3.5 h-3.5 fill-current" />
+              إنهاء وحفظ التسجيل
+            </button>
+            <button
+              type="button"
+              onClick={cancelRecording}
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold rounded-xl bg-secondary hover:bg-secondary/80 text-muted-foreground transition-all cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+              إلغاء
+            </button>
+          </div>
+        </div>
+      ) : !activeAudioSrc ? (
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
@@ -218,8 +313,7 @@ export function AudioUploader({
             const f = e.dataTransfer.files?.[0];
             if (f) handleFileSelect(f);
           }}
-          onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-2xl p-5 text-center cursor-pointer transition-all duration-300 group
+          className={`border-2 border-dashed rounded-2xl p-5 text-center transition-all duration-300 group
             ${dragOver 
               ? 'border-brand-orange bg-brand-orange/10 scale-[1.01]' 
               : 'border-border hover:border-brand-orange/60 bg-secondary/30 hover:bg-secondary/60'}`}
@@ -228,14 +322,23 @@ export function AudioUploader({
             <Volume2 className="w-6 h-6" />
           </div>
           <p className="text-xs font-bold text-foreground mb-1">{placeholder}</p>
-          <p className="text-[11px] text-muted-foreground">صيغ الصوت: MP3, WAV, M4A, OGG (حتى {maxSizeMB}MB)</p>
-          <div className="mt-3">
+          <p className="text-[11px] text-muted-foreground">صيغ الصوت: MP3, WAV, M4A, OGG (حتى {maxSizeMB}MB) أو تسجيل مباشر بالمايكروفون</p>
+          <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
             <button
               type="button"
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-brand-orange to-brand-red text-white shadow-sm hover:opacity-95 transition-all"
+              onClick={startRecording}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-black rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-500/20 hover:scale-105 active:scale-95 transition-all cursor-pointer"
             >
-              <Music className="w-3.5 h-3.5" />
-              رفع تسجيل صوتي
+              <Mic className="w-4 h-4" />
+              تسجيل صوت الأستاذ بالمايك
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl bg-secondary hover:bg-secondary/80 text-foreground border border-border transition-all cursor-pointer"
+            >
+              <UploadCloud className="w-4 h-4 text-muted-foreground" />
+              رفع ملف صوتي
             </button>
           </div>
         </div>
@@ -290,10 +393,19 @@ export function AudioUploader({
             <div className="flex items-center gap-1 shrink-0">
               <button
                 type="button"
+                onClick={startRecording}
+                disabled={uploading}
+                title="إعادة تسجيل صوت الأستاذ بالمايكروفون"
+                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-all disabled:opacity-50 cursor-pointer"
+              >
+                <Mic className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                title="استبدال التسجيل"
-                className="p-2 text-brand-orange hover:bg-brand-orange/10 rounded-xl transition-all disabled:opacity-50"
+                title="استبدال بملف صوتي آخر"
+                className="p-2 text-brand-orange hover:bg-brand-orange/10 rounded-xl transition-all disabled:opacity-50 cursor-pointer"
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
@@ -302,7 +414,7 @@ export function AudioUploader({
                 onClick={handleRemove}
                 disabled={uploading}
                 title="حذف التسجيل"
-                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-all disabled:opacity-50"
+                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-all disabled:opacity-50 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

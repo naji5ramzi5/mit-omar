@@ -46,6 +46,23 @@ export interface Lesson {
   duration: number;
   order: number;
   isFree: boolean;
+  _count?: { flashcards?: number };
+}
+
+export interface Flashcard {
+  id: string;
+  lessonId?: string | null;
+  listId?: string | null;
+  wordDe: string;
+  wordAr: string;
+  wordEn: string;
+  exampleDe?: string | null;
+  exampleAr?: string | null;
+  exampleEn?: string | null;
+  audioUrl?: string | null;
+  imageUrl?: string | null;
+  order: number;
+  published: boolean;
 }
 
 export interface Post {
